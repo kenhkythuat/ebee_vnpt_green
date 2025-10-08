@@ -1,0 +1,28 @@
+/*
+ * common_modbus_rs485.h
+ *
+ *  Created on: Sep 17, 2025
+ *      Author: MY PC
+ */
+
+#include "stdbool.h"
+#include <stdint.h>
+#include <config.h>
+#ifndef INC_COMMON_MODBUS_RS485_H_
+#define INC_COMMON_MODBUS_RS485_H_
+
+extern char rx_buffer_sensor[30];
+uint16_t modbus_crc16(uint8_t *buf, uint16_t len);
+
+#if SM7820_RS485
+extern float data_air_temperature;
+extern float data_air_humidity;
+#endif
+
+// number address is 11
+#if LX200K_485
+extern float data_light_lx200k;
+#endif
+
+
+#endif /* INC_COMMON_MODBUS_RS485_H_ */
