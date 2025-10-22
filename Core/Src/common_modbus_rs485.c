@@ -207,12 +207,12 @@ void read_sensor(void){
 #endif
 
 #if RK520_01
-  data_soil_temperature_rika520_01 = send_data_to_rs485(command_rika520_01,"RK520_01");
+	data_soil_temperature_rika520_01 = send_data_to_rs485(command_rika520_01,"RK520_01");
 
-  data_soil_temperature_rika520_01 = (rx_buffer_sensor[3]<<8 | rx_buffer_sensor[4])*0.1;
+	data_soil_temperature_rika520_01 = (rx_buffer_sensor[3]<<8 | rx_buffer_sensor[4])*0.1;
 	printf("data_temperature_rika502_01 %.2f\r\n",data_soil_temperature_rika520_01);
 
-	data_soil_moisture_rika520_01 = (rx_buffer_sensor[5]<<8 | rx_buffer_sensor[6])*0.1;
+	data_soil_moisture_rika520_01 = ((rx_buffer_sensor[5]<<8 | rx_buffer_sensor[6])*0.1)*1.35;
 	printf("data_moisture_rika502_01 %.2f\r\n",data_soil_moisture_rika520_01);
 	HAL_Delay(1000);
 #endif
