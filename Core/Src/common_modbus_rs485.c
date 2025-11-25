@@ -52,7 +52,8 @@ uint8_t respone_rk520_02 = false;
 #endif
 
 #if NBL_S_TMC_7
-unsigned char command_niubol_7in1[8] = {0x01, 0x03, 0x00, 0x00, 0x00, 0x07, 0x04, 0x08};
+//unsigned char command_niubol_7in1[8] = {0x01, 0x03, 0x00, 0x00, 0x00, 0x07, 0x04, 0x08};
+unsigned char command_niubol_7in1[8] = {0x07, 0x03, 0x00, 0x00, 0x00, 0x07, 0x04, 0x6E};
 float data_soil_temperature_niubol_7=0;
 float data_soil_moisture_niubol_7=0;
 float data_soil_conductivity_niubol_7=0;
@@ -243,6 +244,20 @@ void read_sensor(void){
   printf("data_soil_conductivity_niubol_7 %.2f\r\n",data_soil_conductivity_niubol_7);
 
   data_soil_pH_niubol_7=(rx_buffer_sensor[9]<<8 | rx_buffer_sensor[10])*0.01;
+  float temp_pH_niubol_7;
+  temp_pH_niubol_7 = data_soil_pH_niubol_7;
+  if (6.51 < temp_pH_niubol_7 && temp_pH_niubol_7 < 7)
+  {
+      data_soil_pH_niubol_7 = data_soil_pH_niubol_7 - 0.8;
+  }
+  else if (7.01 < temp_pH_niubol_7 && temp_pH_niubol_7 < 8)
+  {
+      data_soil_pH_niubol_7 = data_soil_pH_niubol_7 - 1.5;
+  }
+  else if (8.01 < temp_pH_niubol_7 && temp_pH_niubol_7 < 8.5)
+  {
+      data_soil_pH_niubol_7 = data_soil_pH_niubol_7 - 2;
+  }
   printf("data_soil_pH_niubol_7 %.2f\r\n",data_soil_pH_niubol_7);
 
   data_soil_nitrogen_niubol_7=(rx_buffer_sensor[11]<<8 | rx_buffer_sensor[12]);

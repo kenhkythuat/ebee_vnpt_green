@@ -50,7 +50,7 @@ int _write(int file, char *ptr, int len) {
 
 /* Private macro -------------------------------------------------------------*/
 /* USER CODE BEGIN PM */
-
+int test=0;
 /* USER CODE END PM */
 
 /* Private variables ---------------------------------------------------------*/
@@ -122,6 +122,8 @@ int main(void)
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
+//	  test++;
+//	    HAL_Delay(1000);
       check_handle_state(current_status_simcom);
   }
   /* USER CODE END 3 */
