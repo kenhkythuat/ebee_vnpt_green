@@ -26,7 +26,7 @@
 #define INTERVAL_PUPLISH_DATA 180 // the time the device sends data to the server
 // Serial number. Must be lower case.
 #ifndef SERIAL_NUMBER
-#define SERIAL_NUMBER "eb000384"
+#define SERIAL_NUMBER "eb000383"
 #endif
 
 //#define MQTT_USER "node"   // User - connect to MQTT broker

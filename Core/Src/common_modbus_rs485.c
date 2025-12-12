@@ -163,13 +163,14 @@ float modbus_bytes_to_float( char *data, int offset)
 float send_data_to_rs485(uint8_t *data, char * data_log) {
   printf("Read measured form %s\r\n",data_log);
   memset(rx_buffer_sensor, '\0', 30);
-  HAL_Delay(100);
+  HAL_Delay(200);
   HAL_UART_Transmit(&huart4, data, 8, 1000);
   HAL_Delay(700);
   return 1;;
 }
 void read_sensor(void){
   // read PH Fuvitech
+	for(int i=0;i<2;i++){
 #if ph_fuvitech
   data_measured_ph_fuvitech = send_data_to_rs485(measured_command_ph_fuvitech,"PH");
   data_temperature_ph_fuvitech = send_data_to_rs485(temperature_command_ph_fuvitech,"PH");
@@ -187,6 +188,7 @@ void read_sensor(void){
 #endif
 #if SM7820_RS485
   data_air_temperature = send_data_to_rs485(command_sm7820b,"SM7820");
+  printf("data modbus SM7820B %s\r\n",rx_buffer_sensor);
   data_air_temperature= (rx_buffer_sensor[3]<<8|rx_buffer_sensor[4])/100;
   printf("data_air_temperature %.2f\r\n",data_air_temperature);
   data_air_humidity= (rx_buffer_sensor[5]<<8|rx_buffer_sensor[6])/100;
@@ -213,7 +215,7 @@ void read_sensor(void){
 	data_soil_temperature_rika520_01 = (rx_buffer_sensor[3]<<8 | rx_buffer_sensor[4])*0.1;
 	printf("data_temperature_rika502_01 %.2f\r\n",data_soil_temperature_rika520_01);
 
-	data_soil_moisture_rika520_01 = ((rx_buffer_sensor[5]<<8 | rx_buffer_sensor[6])*0.1)*1.35;
+	data_soil_moisture_rika520_01 = ((rx_buffer_sensor[5]<<8 | rx_buffer_sensor[6])*0.1);
 	printf("data_moisture_rika502_01 %.2f\r\n",data_soil_moisture_rika520_01);
 	HAL_Delay(1000);
 #endif
@@ -286,8 +288,7 @@ void read_sensor(void){
 
   HAL_Delay(1000);
 #endif
-
-
+	}
 
 }
 
