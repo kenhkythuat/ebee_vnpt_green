@@ -15,6 +15,7 @@
 #include <main.h>
 
 extern UART_HandleTypeDef huart1;
+extern UART_HandleTypeDef huart2;
 extern TIM_HandleTypeDef htim6;
 extern TIM_HandleTypeDef htim7;
 extern ADC_HandleTypeDef hadc1;
@@ -23,6 +24,7 @@ char rx_buffer_simcom[700];
 char rx_data_sim[700];
 char array_at_command[400];
 char array_json[400];
+char rx_uart2[10];
 
 enum GmsModemState current_status_simcom=Off;
 
@@ -292,6 +294,12 @@ void create_JSON(void) {
   snprintf(data_NBL_S_TMC_7_str, sizeof(data_NBL_S_TMC_7_str), "%.2f", data_soil_kali__NBL_S_NPK);
   cJSON_AddStringToObject(json, "fertK", data_NBL_S_TMC_7_str);
 
+#endif
+
+#if CO2_UART
+  char data_CO2_str[16];
+  snprintf(data_CO2_str, sizeof(data_CO2_str), "%.2d", data_co2);
+  cJSON_AddStringToObject(json, "Carbonic", data_CO2_str);
 #endif
 
   char *json_string = cJSON_PrintUnformatted(json);

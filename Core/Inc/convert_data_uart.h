@@ -10,6 +10,7 @@
 
 extern UART_HandleTypeDef huart1;
 extern UART_HandleTypeDef huart4;
+extern UART_HandleTypeDef huart2;
 
 
 #endif /* INC_CONVERT_DATA_UART_H_ */

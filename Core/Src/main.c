@@ -57,6 +57,16 @@ int test=0;
 
 /* USER CODE BEGIN PV */
 uint16_t adc_valve[5];
+unsigned char command_co2_test[9] = { 0xFF, 0x01, 0x86, 0x00, 0x00, 0x00, 0x00, 0x00, 0x79 };
+float send_data_co2_test(uint8_t *data, char *data_log)
+{
+  printf("Read data CO2 form %s\r\n", data_log);
+  memset(rx_uart2, '\0', 10);
+  HAL_Delay(200);
+  HAL_UART_Transmit(&huart2, data, 9, 500);
+  HAL_Delay(500);
+  return 1;
+}
 
 /* USER CODE END PV */
 
@@ -105,14 +115,16 @@ int main(void)
   MX_USART1_UART_Init();
   MX_USART2_UART_Init();
   MX_ADC1_Init();
-  MX_I2C1_Init();
   MX_TIM6_Init();
   MX_TIM7_Init();
+  MX_I2C1_Init();
   /* USER CODE BEGIN 2 */
   HAL_UARTEx_ReceiveToIdle_IT(&huart1, (uint8_t *)rx_buffer_simcom, 700);
   HAL_UARTEx_ReceiveToIdle_IT(&huart4, (uint8_t *)rx_buffer_sensor, 30);
+  HAL_UARTEx_ReceiveToIdle_IT(&huart2, (uint8_t *)rx_uart2, 9);
   HAL_TIM_Base_Start_IT(&htim6);
   HAL_ADC_Start_DMA(&hadc1, (uint32_t *)adc_valve, 1);
+  HAL_GPIO_WritePin(GPIOB, LED_STATUS_Pin|ENABLE_SENSOR_Pin, GPIO_PIN_SET);
   /* USER CODE END 2 */
 
   /* Infinite loop */

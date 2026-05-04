@@ -51,5 +51,9 @@ extern float data_soil_kali__NBL_S_NPK;
 
 #endif
 
+#if CO2_UART
+extern int data_co2;
+#endif
+
 
 #endif /* INC_COMMON_MODBUS_RS485_H_ */

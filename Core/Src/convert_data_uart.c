@@ -15,8 +15,6 @@
 #include "convert_data_uart.h"
 #include "common_simcom.h"
 
-
-
 void HAL_UARTEx_RxEventCallback(UART_HandleTypeDef *huart, uint16_t Size) {
   if (huart->Instance == USART1) {
 	      printf("\r\nSIMCOM Response:");
@@ -24,8 +22,16 @@ void HAL_UARTEx_RxEventCallback(UART_HandleTypeDef *huart, uint16_t Size) {
 	      for (int i = 0; i < 700; i++) {
 	        rx_data_sim[i] = rx_buffer_simcom[i];
 	      }
+     memset(rx_buffer_simcom, '\0', 700);
   }
-  memset(rx_buffer_simcom, '\0', 700);
+  if (huart->Instance == USART2){
+      printf("\r\nUART2 Response:");
+      for (uint16_t i = 0; i < Size; i++) {
+        printf(" %02X", (uint8_t)rx_uart2[i]);
+      }
+      printf("\r\n");
+  }
   HAL_UARTEx_ReceiveToIdle_IT(&huart1, (uint8_t *)rx_buffer_simcom, 700);
   HAL_UARTEx_ReceiveToIdle_IT(&huart4, (uint8_t *)rx_buffer_sensor, 30);
+  HAL_UARTEx_ReceiveToIdle_IT(&huart2, (uint8_t *)rx_uart2, 9);
  }
