@@ -26,14 +26,14 @@
 #define INTERVAL_PUPLISH_DATA 180 // the time the device sends data to the server
 // Serial number. Must be lower case.
 #ifndef SERIAL_NUMBER
-#define SERIAL_NUMBER "eb000999"
+#define SERIAL_NUMBER "eb_000002"
 #endif
 
 //#define MQTT_USER "node"   // User - connect to MQTT broker
 //#define MQTT_PASS "654321" // Password - connect to MQTT broker
 
-#define MQTT_USER "mqttnode"       // User - connect to MQTT broker
-#define MQTT_PASS "congamo"		// Password - connect to MQTT broker
+#define MQTT_USER "7eigdm211wc2nr3w45j6"       // User - connect to MQTT broker
+#define MQTT_PASS "k49md8qlby4sx6xf5dxl"		// Password - connect to MQTT broker
 
 #define MQTT_TOPIC_ACTUATOR_STATUS FARM "/sn/" SERIAL_NUMBER
 // MQTT topic to subscribe and get command to switch on/off actuator
@@ -41,9 +41,10 @@
 /** MQTT
  * Global broker: mqtt.agriconnect.vn`
  */
-#define MQTT_HOST "tcp://mqtt.agriconnect.vn" // MQTT broker
+//#define MQTT_HOST "tcp://mqtt.agriconnect.vn" // MQTT broker
+#define MQTT_HOST "tcp://iot.vnptgreen.vn" // MQTT broker
 
-#define MQTT_CLIENT_ID SERIAL_NUMBER
+#define MQTT_CLIENT_ID "dttxzh7awplus0q2xmbg"
 #define MQTT_PORT 1883
 
 #define RK520_01 false
