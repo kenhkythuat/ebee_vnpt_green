@@ -640,10 +640,10 @@ bool publish_mqtt_via_gsm(void) {
   } else
     printf("-----------------Publish fail !------------------\n");
 #else
-  sprintf(array_at_command, "AT+CMQTTTOPIC=0,%d\r\n", strlen(MQTT_TOPIC_ACTUATOR_STATUS));
+  sprintf(array_at_command, "AT+CMQTTTOPIC=0,%d\r\n", strlen(MQTT_TOPIC_SENSOR_THINGSBOARD));
   send_to_simcom_a76xx(array_at_command);
   HAL_Delay(400);
-  sprintf(array_at_command, "%s\r\n", MQTT_TOPIC_ACTUATOR_STATUS);
+  sprintf(array_at_command, "%s\r\n", MQTT_TOPIC_SENSOR_THINGSBOARD);
   send_to_simcom_a76xx(array_at_command);
   HAL_Delay(400);
   if (strstr((char *)rx_data_sim, "OK") != NULL) {

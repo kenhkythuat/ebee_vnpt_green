@@ -23,7 +23,7 @@
 
 #define SIMCOM_MODEL a7680 // #default is a7670c if you use model other please choose enter your
          // model
-#define INTERVAL_PUPLISH_DATA 180 // the time the device sends data to the server
+#define INTERVAL_PUPLISH_DATA 10 // the time the device sends data to the server
 // Serial number. Must be lower case.
 #ifndef SERIAL_NUMBER
 #define SERIAL_NUMBER "eb_000002"
@@ -36,6 +36,9 @@
 #define MQTT_PASS "k49md8qlby4sx6xf5dxl"		// Password - connect to MQTT broker
 
 #define MQTT_TOPIC_ACTUATOR_STATUS FARM "/sn/" SERIAL_NUMBER
+#define MQTT_TOPIC_SENSOR_THINGSBOARD "v1/devices/me/telemetry"
+
+
 // MQTT topic to subscribe and get command to switch on/off actuator
 //#define MQTT_TOPIC_ACTUATOR_CONTROL FARM "/snac/" SERIAL_NUMBER "/"
 /** MQTT
@@ -53,9 +56,9 @@
 #define RK500_22 false
 #define bh1750 false
 #define sht30 false
-#define NBL_S_TMC_7 false
+#define NBL_S_TMC_7 true
 #define NBL_S_NPK false
-#define CO2_UART true
+#define CO2_UART false
 #define SM7820_RS485 true
 #define LX200K_485 true
 #define enable_sleep_mode false

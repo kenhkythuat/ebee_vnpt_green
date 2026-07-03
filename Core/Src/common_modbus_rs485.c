@@ -54,7 +54,7 @@ uint8_t respone_rk520_02 = false;
 
 #if NBL_S_TMC_7
 // unsigned char command_niubol_7in1[8] = {0x01, 0x03, 0x00, 0x00, 0x00, 0x07, 0x04, 0x08};
-unsigned char command_niubol_7in1[8] = {0x07, 0x03, 0x00, 0x00, 0x07, 0x04, 0x6E};
+unsigned char command_niubol_7in1[8] = {0x07, 0x03, 0x00, 0x00, 0x00, 0x07, 0x04, 0x6E};
 float data_soil_temperature_niubol_7 = 0;
 float data_soil_moisture_niubol_7 = 0;
 float data_soil_conductivity_niubol_7 = 0;
