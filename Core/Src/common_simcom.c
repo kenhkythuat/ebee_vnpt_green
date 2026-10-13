@@ -241,11 +241,15 @@ void create_JSON(void) {
 #endif
 
 #if PT100_01
-  cJSON_AddNumberToObject(json, "temperature_pt100_1", temperature_pt100_1);
+  char temperature_pt100_1_str[16];
+  snprintf(temperature_pt100_1_str, sizeof(temperature_pt100_1_str), "%.2f", temperature_pt100_1);
+  cJSON_AddRawToObject(json, "temperature_pt100_1", temperature_pt100_1_str);
 #endif
 
 #if PT100_02
-  cJSON_AddNumberToObject(json, "temperature_pt100_2", temperature_pt100_2);
+  char temperature_pt100_2_str[16];
+  snprintf(temperature_pt100_2_str, sizeof(temperature_pt100_2_str), "%.2f", temperature_pt100_2);
+  cJSON_AddRawToObject(json, "temperature_pt100_2", temperature_pt100_2_str);
 #endif
 
 #if RK500_22
