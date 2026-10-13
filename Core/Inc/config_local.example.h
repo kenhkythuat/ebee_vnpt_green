@@ -22,7 +22,7 @@
 
 #define MQTT_USER "your_mqtt_username"
 #define MQTT_PASS "your_mqtt_password"
-#define MQTT_HOST "tcp://iot.vnptgreen.vn"
+#define MQTT_HOST "tcp://iot-demo.vnptgreen.vn"
 #define MQTT_CLIENT_ID "your_mqtt_client_id"
 #define MQTT_PORT 1883
 

@@ -56,11 +56,9 @@
 
 // MQTT topic to subscribe and get command to switch on/off actuator
 //#define MQTT_TOPIC_ACTUATOR_CONTROL FARM "/snac/" SERIAL_NUMBER "/"
-/** MQTT
- * Global broker: mqtt.agriconnect.vn`
- */
+/** Default VNPT demo MQTT broker. */
 #ifndef MQTT_HOST
-#define MQTT_HOST "tcp://iot.vnptgreen.vn" // MQTT broker
+#define MQTT_HOST "tcp://iot-demo.vnptgreen.vn" // MQTT broker
 #endif
 
 #ifndef MQTT_CLIENT_ID
