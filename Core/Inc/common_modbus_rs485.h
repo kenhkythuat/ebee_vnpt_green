@@ -25,6 +25,14 @@ extern float data_air_humidity;
 extern float data_light_lx200k;
 #endif
 
+#if PT100_01
+extern float temperature_pt100_1;
+#endif
+
+#if PT100_02
+extern float temperature_pt100_2;
+#endif
+
 #if RK500_22
 extern float data_ph_rk500_22;
 #endif

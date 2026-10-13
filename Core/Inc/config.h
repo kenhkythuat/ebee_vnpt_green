@@ -102,6 +102,12 @@
 #ifndef LX200K_485
 #define LX200K_485 true
 #endif
+#ifndef PT100_01
+#define PT100_01 false
+#endif
+#ifndef PT100_02
+#define PT100_02 false
+#endif
 #ifndef enable_sleep_mode
 #define enable_sleep_mode false
 #endif

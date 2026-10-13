@@ -240,6 +240,14 @@ void create_JSON(void) {
   cJSON_AddStringToObject(json, "Light", data_LX200K_485_str);
 #endif
 
+#if PT100_01
+  cJSON_AddNumberToObject(json, "temperature_pt100_1", temperature_pt100_1);
+#endif
+
+#if PT100_02
+  cJSON_AddNumberToObject(json, "temperature_pt100_2", temperature_pt100_2);
+#endif
+
 #if RK500_22
   //   data light
   char data_RK500_22_str[16];

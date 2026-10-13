@@ -109,7 +109,7 @@ unsigned char tds_command_ec_fuvitech[8] = {0x01, 0x03, 0x00, 0x06, 0x00, 0x02, 
 unsigned char salinity_command_ec_fuvitech[8] = {0x01, 0x03, 0x00, 0x08, 0x00, 0x02, 0x45, 0xC9};
 
 #endif
-// number address is 12
+// number address is 11
 #if SM7820_RS485
 unsigned char command_sm7820b[8] = {0x0B, 0x03, 0x00, 0x00, 0x00, 0x02, 0xC4, 0xA1};
 uint8_t respone_sm7820b = false;
@@ -118,11 +118,23 @@ float data_air_humidity;
 
 #endif
 
-// number address is 11
+// number address is 10
 #if LX200K_485
 unsigned char command_lx200k_485[8] = {0x0A, 0x03, 0x00, 0x02, 0x00, 0x02, 0x64, 0xB0};
 float data_light_lx200k = 0;
 uint8_t respone_lx200k_485 = false;
+#endif
+
+// PT100 register 0x0001 (Modbus start address 0x0000), device address 12
+#if PT100_01
+unsigned char command_pt100_01[8] = {0x0C, 0x03, 0x00, 0x00, 0x00, 0x01, 0x85, 0x17};
+float temperature_pt100_1 = 0.0f;
+#endif
+
+// PT100 register 0x0001 (Modbus start address 0x0000), device address 13
+#if PT100_02
+unsigned char command_pt100_02[8] = {0x0D, 0x03, 0x00, 0x00, 0x00, 0x01, 0x84, 0xC6};
+float temperature_pt100_2 = 0.0f;
 #endif
 
 #if RK500_22
@@ -170,6 +182,15 @@ float modbus_bytes_to_float(char *data, int offset)
   memcpy(&value, &raw, sizeof(value));
   return value;
 }
+
+#if PT100_01 || PT100_02
+static float pt100_response_to_temperature(const char *response)
+{
+  int16_t raw_temperature = (int16_t)(((uint16_t)(uint8_t)response[3] << 8) |
+                                      (uint16_t)(uint8_t)response[4]);
+  return (float)raw_temperature / 10.0f;
+}
+#endif
 
 float send_data_to_rs485(uint8_t *data, char *data_log)
 {
@@ -234,6 +255,20 @@ void read_sensor(void)
     data_light_lx200k = send_data_to_rs485(command_lx200k_485, "LK200K");
     data_light_lx200k = (rx_buffer_sensor[3] << 24 | rx_buffer_sensor[4] << 16 | rx_buffer_sensor[5] << 8 | rx_buffer_sensor[6]) / 1000;
     printf("data_light_sensor %.2f\r\n", data_light_lx200k);
+    HAL_Delay(1000);
+#endif
+
+#if PT100_01
+    send_data_to_rs485(command_pt100_01, "PT100_01");
+    temperature_pt100_1 = pt100_response_to_temperature(rx_buffer_sensor);
+    printf("temperature_pt100_1 %.1f\r\n", temperature_pt100_1);
+    HAL_Delay(1000);
+#endif
+
+#if PT100_02
+    send_data_to_rs485(command_pt100_02, "PT100_02");
+    temperature_pt100_2 = pt100_response_to_temperature(rx_buffer_sensor);
+    printf("temperature_pt100_2 %.1f\r\n", temperature_pt100_2);
     HAL_Delay(1000);
 #endif
 

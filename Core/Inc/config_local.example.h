@@ -37,6 +37,8 @@
 #define CO2_UART false
 #define SM7820_RS485 false
 #define LX200K_485 false
+#define PT100_01 false
+#define PT100_02 false
 #define enable_sleep_mode false
 
 #endif /* INC_CONFIG_LOCAL_H_ */
