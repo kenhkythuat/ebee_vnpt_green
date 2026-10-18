@@ -194,6 +194,7 @@ void create_JSON(void) {
   snprintf(data_battery, sizeof(data_battery), "%.2f", data_percentage_pin);
   cJSON_AddNumberToObject(json, "_gsm_signal_strength", rssi);
   cJSON_AddStringToObject(json, "_battery_level", data_battery);
+  cJSON_AddStringToObject(json, "_version", VERSION_EBEE);
 
 #if ph_fuvitech
   // data PH Fuvitech
@@ -361,56 +362,68 @@ bool connect_mqtt_server_by_gsm(void) {
   return false;
 }
 
-bool subscribe_mqtt_via_gsm(void) {
+static bool subscribe_mqtt_topic_via_gsm(const char *topic) {
 #if SIMCOM_MODEL == a7080
-  memset(rx_data_sim, '\0', 1500);
+  memset(rx_data_sim, '\0', sizeof(rx_data_sim));
   HAL_Delay(400);
-  char temp_buffer[200];
-  sprintf(temp_buffer, "\"%s/snac/%s/#\"", FARM, SERIAL_NUMBER);
-  sprintf(array_at_command, "AT+SMSUB=%s,0\r\n", temp_buffer);
+  snprintf(array_at_command, sizeof(array_at_command),
+           "AT+SMSUB=\"%s\",0\r\n", topic);
   send_to_simcom_a76xx(array_at_command);
   HAL_Delay(3000);
   if (strstr((char *)rx_data_sim, "OK") != NULL) {
-    printf("\n-----------------Subscribe Topic Success------------------\n");
-    is_at_subcribe_topic_mqtt = true;
-    HAL_GPIO_WritePin(LED_STATUS_GPIO_Port, LED_STATUS_Pin, SET);
+    printf("\n----- Subscribe topic success: %s -----\n", topic);
     return true;
-  } else {
-    printf("-----------------Subscribe Fail !------------------\n");
+  }
+  printf("----- Subscribe topic fail: %s -----\n", topic);
+  return false;
+#else
+  memset(rx_data_sim, '\0', sizeof(rx_data_sim));
+  snprintf(array_at_command, sizeof(array_at_command),
+           "AT+CMQTTSUBTOPIC=0,%u,1\r\n", (unsigned int)strlen(topic));
+  send_to_simcom_a76xx(array_at_command);
+  HAL_Delay(500);
+  snprintf(array_at_command, sizeof(array_at_command), "%s\r\n", topic);
+  send_to_simcom_a76xx(array_at_command);
+  HAL_Delay(500);
+  if (strstr((char *)rx_data_sim, "OK") == NULL) {
+    printf("----- Set subscribe topic fail: %s -----\n", topic);
+    return false;
+  }
+
+  memset(rx_data_sim, '\0', sizeof(rx_data_sim));
+  send_to_simcom_a76xx("AT+CMQTTSUB=0\r\n");
+  HAL_Delay(1000);
+  if (strstr((char *)rx_data_sim, "+CMQTTSUB: 0,0") != NULL) {
+    printf("----- Subscribe topic success: %s -----\n", topic);
+    return true;
+  }
+  printf("----- Subscribe topic fail: %s -----\n", topic);
+  return false;
+#endif
+}
+
+bool subscribe_mqtt_via_gsm(void) {
+  char control_topic[200];
+
+  snprintf(control_topic, sizeof(control_topic), "%s/snac/%s/#", FARM,
+           SERIAL_NUMBER);
+
+  is_at_subcribe_topic_mqtt = subscribe_mqtt_topic_via_gsm(control_topic);
+  if (!is_at_subcribe_topic_mqtt) {
     is_at_subcribe_mqtt = false;
     return false;
   }
-#else
-  memset(rx_data_sim, '\0', 700);
-  sprintf(array_at_command, "%s/snac/%s/#", FARM, SERIAL_NUMBER);
-  sprintf(array_at_command, "AT+CMQTTSUBTOPIC=0,%d,1\r\n", (int)strlen(array_at_command));
-  send_to_simcom_a76xx(array_at_command);
-  HAL_Delay(500);
-  sprintf(array_at_command, "%s/snac/%s/#\r\n", FARM, SERIAL_NUMBER);
-  send_to_simcom_a76xx(array_at_command);
-  HAL_Delay(500);
-  if (strstr((char *)rx_data_sim, "OK") != NULL) {
-    printf("-----------------Subscribe Topic Success------------------\n");
-    is_at_subcribe_topic_mqtt = true;
-  } else {
-    printf("-----------------Subscribe Topic Fail------------------\n");
+
+  if (!subscribe_mqtt_topic_via_gsm(MQTT_TOPIC_ATTRIBUTES_THINGSBOARD)) {
     is_at_subcribe_topic_mqtt = false;
+    is_at_subcribe_mqtt = false;
+    return false;
   }
-  if (is_at_subcribe_topic_mqtt == true) {
-    send_to_simcom_a76xx("AT+CMQTTSUB=0\r\n");
-    HAL_Delay(1000);
-    if (strstr((char *)rx_data_sim, "+CMQTTSUB: 0,0") != NULL) {
-      printf("-----------------Subscribe Success !------------------\n");
-      is_at_subcribe_mqtt = true;
-    } else {
-      printf("-----------------Subscribe Fail !------------------\n");
-      is_at_subcribe_mqtt = false;
-      return false;
-    }
-  }
+
+  is_at_subcribe_topic_mqtt = true;
+  is_at_subcribe_mqtt = true;
   HAL_GPIO_WritePin(LED_STATUS_GPIO_Port, LED_STATUS_Pin, SET);
   return true;
-#endif
 }
 
 bool stop_mqtt_via_gsm(void) {

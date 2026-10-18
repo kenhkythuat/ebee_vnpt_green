@@ -67,6 +67,7 @@
 
 #define MQTT_TOPIC_ACTUATOR_STATUS FARM "/sn/" SERIAL_NUMBER
 #define MQTT_TOPIC_SENSOR_THINGSBOARD "v1/devices/me/telemetry"
+#define MQTT_TOPIC_ATTRIBUTES_THINGSBOARD "v1/devices/me/attributes"
 
 
 // MQTT topic to subscribe and get command to switch on/off actuator

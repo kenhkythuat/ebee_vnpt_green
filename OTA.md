@@ -17,7 +17,7 @@ sequenceDiagram
     participant Flash as STM32 Flash
     participant Boot as Bootloader
 
-    Server->>Broker: Publish {"command":"ota_update"}
+    Server->>Broker: Publish v1/devices/me/attributes {"OTA":"ota_check"}
     Broker->>SIMCOM: MQTT message
     SIMCOM->>EBEE: USART1 receive-to-idle
     EBEE->>SIMCOM: HTTPS GET manifest.json
@@ -69,25 +69,28 @@ Firmware đang subscribe:
 
 ```text
 <FARM>/snac/<SERIAL_NUMBER>/#
+v1/devices/me/attributes
 ```
 
-Gửi một trong hai payload sau đến topic OTA của thiết bị:
+Để yêu cầu thiết bị kiểm tra OTA, server publish payload sau vào topic `v1/devices/me/attributes`:
 
 ```json
-{"command":"ota_check"}
-```
-
-```json
-{"command":"ota_update"}
+{"OTA":"ota_check"}
 ```
 
 Ví dụ với Mosquitto; thay toàn bộ placeholder bằng cấu hình thật:
 
 ```powershell
-mosquitto_pub -h <MQTT_HOST> -p <MQTT_PORT> -u <MQTT_USER> -P <MQTT_PASS> -q 1 -t "<FARM>/snac/<SERIAL_NUMBER>/ota" -m '{"command":"ota_update"}'
+mosquitto_pub -h <MQTT_HOST> -p <MQTT_PORT> -u <MQTT_USER> -P <MQTT_PASS> -q 1 -t "v1/devices/me/attributes" -m '{"OTA":"ota_check"}'
 ```
 
-Hai lệnh hiện dùng cùng một hành vi: kiểm tra manifest và chỉ tải khi version mới lớn hơn `VERSION_EBEE`.
+Firmware chỉ kích hoạt luồng OTA khi cùng một MQTT message có đúng topic `v1/devices/me/attributes` và payload `{"OTA":"ota_check"}`. Dữ liệu topic và payload được ghép qua nhiều lần nhận USART1 nếu URC của modem bị chia nhỏ. Sau đó thiết bị kiểm tra manifest và chỉ tải khi version mới lớn hơn `VERSION_EBEE`.
+
+Mỗi bản tin telemetry gửi lên `v1/devices/me/telemetry` có thêm phiên bản firmware hiện tại:
+
+```json
+{"_version":"1.0.0"}
+```
 
 ## 6. Manifest contract
 
