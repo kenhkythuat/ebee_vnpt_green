@@ -20,6 +20,11 @@
 #define INTERVAL_PUPLISH_DATA 10
 #define SERIAL_NUMBER "eb_xxxxxx"
 
+#define VERSION_EBEE "1.0.0"
+#define OTA_ENABLE 1
+#define OTA_MANIFEST_URL "https://gitlab.com/agriconnect/embedded/ebee_stm32f103ret6/-/raw/ota_ebee_v1/ota/manifest.json"
+#define OTA_DEVICE_ID "ebee-stm32f103ret6"
+
 #define MQTT_USER "your_mqtt_username"
 #define MQTT_PASS "your_mqtt_password"
 #define MQTT_HOST "tcp://iot-demo.vnptgreen.vn"
@@ -39,6 +44,7 @@
 #define LX200K_485 false
 #define PT100_01 false
 #define PT100_02 false
+#define YW001 false
 #define enable_sleep_mode false
 
 #endif /* INC_CONFIG_LOCAL_H_ */

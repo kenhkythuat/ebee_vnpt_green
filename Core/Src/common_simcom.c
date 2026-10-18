@@ -252,6 +252,12 @@ void create_JSON(void) {
   cJSON_AddRawToObject(json, "temperature_pt100_2", temperature_pt100_2_str);
 #endif
 
+#if YW001
+  char water_level_str[16];
+  snprintf(water_level_str, sizeof(water_level_str), "%.1f", water_level);
+  cJSON_AddRawToObject(json, "water_level", water_level_str);
+#endif
+
 #if RK500_22
   //   data light
   char data_RK500_22_str[16];

@@ -69,6 +69,7 @@ void Error_Handler(void);
 /* USER CODE BEGIN Private defines */
 extern float read_level_pin(void);
 extern uint16_t adc_valve[5];
+extern volatile bool to_start_ota;
 
 /* USER CODE END Private defines */
 

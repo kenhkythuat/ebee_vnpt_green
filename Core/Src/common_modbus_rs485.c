@@ -137,6 +137,12 @@ unsigned char command_pt100_02[8] = {0x0D, 0x03, 0x00, 0x00, 0x00, 0x01, 0x84, 0
 float temperature_pt100_2 = 0.0f;
 #endif
 
+// YW001 pressure and decimal places, device address 14
+#if YW001
+unsigned char command_yw001[8] = {0x0E, 0x04, 0x00, 0x00, 0x00, 0x02, 0x71, 0x34};
+float water_level = 0.0f;
+#endif
+
 #if RK500_22
 unsigned char command_rk500_22[8] = {0x06, 0x03, 0x00, 0x00, 0x00, 0x02, 0xC5, 0xBC};
 // unsigned char command_rk500_22[8] = { 0x03, 0x06, 0x00, 0x14, 0x00, 0x06, 0x48, 0x2E };
@@ -189,6 +195,43 @@ static float pt100_response_to_temperature(const char *response)
   int16_t raw_temperature = (int16_t)(((uint16_t)(uint8_t)response[3] << 8) |
                                       (uint16_t)(uint8_t)response[4]);
   return (float)raw_temperature / 10.0f;
+}
+#endif
+
+#if YW001
+static bool yw001_response_to_water_level_cm(const char *response, float *water_level_cm)
+{
+  const uint16_t calculated_crc = modbus_crc16((uint8_t *)response, 7);
+  const uint16_t received_crc = (uint16_t)(uint8_t)response[7] |
+                                ((uint16_t)(uint8_t)response[8] << 8);
+
+  if ((uint8_t)response[0] != 0x0E ||
+      (uint8_t)response[1] != 0x04 ||
+      (uint8_t)response[2] != 0x04 ||
+      calculated_crc != received_crc)
+  {
+    return false;
+  }
+
+  const int16_t raw_pressure = (int16_t)(((uint16_t)(uint8_t)response[3] << 8) |
+                                         (uint16_t)(uint8_t)response[4]);
+  const uint16_t decimal_places = ((uint16_t)(uint8_t)response[5] << 8) |
+                                  (uint16_t)(uint8_t)response[6];
+
+  if (decimal_places > 6)
+  {
+    return false;
+  }
+
+  float divisor = 1.0f;
+  for (uint16_t i = 0; i < decimal_places; i++)
+  {
+    divisor *= 10.0f;
+  }
+
+  // The sensor reports mH2O. Convert it to centimetres of water.
+  *water_level_cm = ((float)raw_pressure / divisor) * 100.0f;
+  return true;
 }
 #endif
 
@@ -269,6 +312,19 @@ void read_sensor(void)
     send_data_to_rs485(command_pt100_02, "PT100_02");
     temperature_pt100_2 = pt100_response_to_temperature(rx_buffer_sensor);
     printf("temperature_pt100_2 %.1f\r\n", temperature_pt100_2);
+    HAL_Delay(1000);
+#endif
+
+#if YW001
+    send_data_to_rs485(command_yw001, "YW001");
+    if (yw001_response_to_water_level_cm(rx_buffer_sensor, &water_level))
+    {
+      printf("water_level %.1f cmH2O\r\n", water_level);
+    }
+    else
+    {
+      printf("Invalid YW001 Modbus response\r\n");
+    }
     HAL_Delay(1000);
 #endif
 

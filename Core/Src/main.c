@@ -27,6 +27,7 @@
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
+#include "ota_update.h"
 
 /* USER CODE END Includes */
 
@@ -78,6 +79,7 @@ void SystemClock_Config(void);
 
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
+volatile bool to_start_ota = false;
 
 /* USER CODE END 0 */
 
@@ -122,6 +124,7 @@ int main(void)
   HAL_UARTEx_ReceiveToIdle_IT(&huart1, (uint8_t *)rx_buffer_simcom, 700);
   HAL_UARTEx_ReceiveToIdle_IT(&huart4, (uint8_t *)rx_buffer_sensor, 30);
   HAL_UARTEx_ReceiveToIdle_IT(&huart2, (uint8_t *)rx_uart2, 9);
+  ota_init();
   HAL_TIM_Base_Start_IT(&htim6);
   HAL_ADC_Start_DMA(&hadc1, (uint32_t *)adc_valve, 1);
   HAL_GPIO_WritePin(GPIOB, LED_STATUS_Pin|ENABLE_SENSOR_Pin, GPIO_PIN_SET);
@@ -137,6 +140,32 @@ int main(void)
 //	  test++;
 //	    HAL_Delay(1000);
       check_handle_state(current_status_simcom);
+      if (to_start_ota && current_status_simcom == Subscribed)
+      {
+        ota_result_t ota_result;
+
+        to_start_ota = false;
+        printf("[OTA] starting update check\r\n");
+        ota_result = ota_check_and_download();
+        if (ota_result == OTA_RESULT_OK)
+        {
+          printf("[OTA] image verified; resetting to bootloader\r\n");
+          HAL_Delay(500);
+          NVIC_SystemReset();
+        }
+        else if (ota_result == OTA_RESULT_NO_UPDATE)
+        {
+          printf("[OTA] firmware is already current\r\n");
+        }
+        else if (ota_result == OTA_RESULT_BUSY)
+        {
+          printf("[OTA] update is already running\r\n");
+        }
+        else
+        {
+          printf("[OTA] update failed\r\n");
+        }
+      }
   }
   /* USER CODE END 3 */
 }

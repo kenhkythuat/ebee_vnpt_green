@@ -33,6 +33,10 @@ extern float temperature_pt100_1;
 extern float temperature_pt100_2;
 #endif
 
+#if YW001
+extern float water_level;
+#endif
+
 #if RK500_22
 extern float data_ph_rk500_22;
 #endif

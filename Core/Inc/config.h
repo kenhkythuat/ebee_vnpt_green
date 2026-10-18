@@ -17,6 +17,21 @@
 #define a7080 4  // NB-IOT
 #define a7680 5  // 4G
 
+#ifndef VERSION_EBEE
+#define VERSION_EBEE "1.0.0"
+#endif
+
+/* OTA endpoint must be reachable by the SIMCOM modem without credentials. */
+#ifndef OTA_ENABLE
+#define OTA_ENABLE 1
+#endif
+#ifndef OTA_MANIFEST_URL
+#define OTA_MANIFEST_URL "https://gitlab.com/agriconnect/embedded/ebee_stm32f103ret6/-/raw/ota_ebee_v1/ota/manifest.json"
+#endif
+#ifndef OTA_DEVICE_ID
+#define OTA_DEVICE_ID "ebee-stm32f103ret6"
+#endif
+
 /* Optional per-machine configuration. This file is ignored by Git. */
 #if defined(__has_include)
 #if __has_include("config_local.h")
@@ -107,6 +122,9 @@
 #endif
 #ifndef PT100_02
 #define PT100_02 false
+#endif
+#ifndef YW001
+#define YW001 false
 #endif
 #ifndef enable_sleep_mode
 #define enable_sleep_mode false

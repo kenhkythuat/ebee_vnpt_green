@@ -1,0 +1,8 @@
+{
+  "version": "1.1.0",
+  "device": "ebee-stm32f103ret6",
+  "app_addr": "0x08008000",
+  "size": 0,
+  "crc32": "0x00000000",
+  "bin_url": "https://gitlab.com/agriconnect/embedded/ebee_stm32f103ret6/-/raw/ota_ebee_v1/ota/ebee_v1.1.0.bin"
+}
