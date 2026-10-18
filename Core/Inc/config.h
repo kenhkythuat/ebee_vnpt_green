@@ -18,7 +18,7 @@
 #define a7680 5  // 4G
 
 #ifndef VERSION_EBEE
-#define VERSION_EBEE "1.2.0"
+#define VERSION_EBEE "1.3.0"
 #endif
 
 /* OTA endpoint must be reachable by the SIMCOM modem without credentials. */
