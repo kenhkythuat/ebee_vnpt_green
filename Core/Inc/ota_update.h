@@ -27,4 +27,8 @@ bool ota_metadata_is_pending(void);
  * Returns true while OTA owns the modem response stream. */
 bool ota_uart_rx_capture(const uint8_t *data, uint16_t length);
 
+/* Called by the USART1 error callback. OTA uses this for diagnostics while
+ * the UART driver immediately restores receive-to-idle operation. */
+void ota_uart_rx_error(uint32_t error_code);
+
 #endif /* INC_OTA_UPDATE_H_ */

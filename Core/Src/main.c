@@ -80,6 +80,43 @@ void SystemClock_Config(void);
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
 volatile bool to_start_ota = false;
+volatile bool ota_non_modem_io_paused = false;
+
+static bool s_tim6_was_running;
+static bool s_tim7_was_running;
+
+static void pause_non_ota_io(void) {
+  s_tim6_was_running = (htim6.Instance->CR1 & TIM_CR1_CEN) != 0U;
+  s_tim7_was_running = (htim7.Instance->CR1 & TIM_CR1_CEN) != 0U;
+  ota_non_modem_io_paused = true;
+  to_send_status_to_server = false;
+
+  HAL_TIM_Base_Stop_IT(&htim6);
+  HAL_TIM_Base_Stop_IT(&htim7);
+  HAL_UART_AbortReceive(&huart2);
+  HAL_UART_AbortReceive(&huart4);
+  __HAL_UART_CLEAR_OREFLAG(&huart2);
+  __HAL_UART_CLEAR_OREFLAG(&huart4);
+}
+
+static void resume_non_ota_io(void) {
+  __HAL_UART_CLEAR_OREFLAG(&huart2);
+  __HAL_UART_CLEAR_OREFLAG(&huart4);
+  ota_non_modem_io_paused = false;
+  HAL_UARTEx_ReceiveToIdle_IT(&huart2, (uint8_t *)rx_uart2,
+                             sizeof(rx_uart2) - 1U);
+  HAL_UARTEx_ReceiveToIdle_IT(&huart4, (uint8_t *)rx_buffer_sensor,
+                             sizeof(rx_buffer_sensor));
+
+  __HAL_TIM_CLEAR_FLAG(&htim6, TIM_FLAG_UPDATE);
+  __HAL_TIM_CLEAR_FLAG(&htim7, TIM_FLAG_UPDATE);
+  if (s_tim6_was_running) {
+    HAL_TIM_Base_Start_IT(&htim6);
+  }
+  if (s_tim7_was_running) {
+    HAL_TIM_Base_Start_IT(&htim7);
+  }
+}
 
 /* USER CODE END 0 */
 
@@ -139,13 +176,13 @@ int main(void)
     /* USER CODE BEGIN 3 */
 //	  test++;
 //	    HAL_Delay(1000);
-      check_handle_state(current_status_simcom);
       if (to_start_ota && current_status_simcom == Subscribed)
       {
         ota_result_t ota_result;
 
         to_start_ota = false;
         printf("[OTA] starting update check\r\n");
+        pause_non_ota_io();
         ota_result = ota_check_and_download();
         if (ota_result == OTA_RESULT_OK)
         {
@@ -155,16 +192,23 @@ int main(void)
         }
         else if (ota_result == OTA_RESULT_NO_UPDATE)
         {
+          resume_non_ota_io();
           printf("[OTA] firmware is already current\r\n");
         }
         else if (ota_result == OTA_RESULT_BUSY)
         {
+          resume_non_ota_io();
           printf("[OTA] update is already running\r\n");
         }
         else
         {
+          resume_non_ota_io();
           printf("[OTA] update failed\r\n");
         }
+      }
+      else
+      {
+        check_handle_state(current_status_simcom);
       }
   }
   /* USER CODE END 3 */

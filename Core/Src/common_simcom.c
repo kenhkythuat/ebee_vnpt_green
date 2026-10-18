@@ -51,7 +51,7 @@ bool is_at_disconnect_mqtt = false;
 bool is_at_rel_mqtt = false;
 bool is_at_stop_mqtt = false;
 bool is_inital_check = false;
-bool to_send_status_to_server;
+volatile bool to_send_status_to_server;
 
 uint16_t frequency_1hz = 0;
 uint16_t frequency_1hz_timer3=0;
@@ -70,10 +70,8 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim) {
       if (frequency_1hz >= INTERVAL_PUPLISH_DATA) {
         to_send_status_to_server = 1;
         frequency_1hz = 0;
-        printf("Case error log total :%d\r\n", total_errors);
       }
     }
-    HAL_TIM_Base_Start_IT(&htim6);
   }
   if (htim->Instance == htim7.Instance) {
 	  frequency_1hz_timer3++;

@@ -1,8 +1,8 @@
 {
-  "version": "1.1.0",
+  "version": "1.2.0",
   "device": "ebee-stm32f103ret6",
   "app_addr": "0x08008000",
-  "size": 68964,
-  "crc32": "0x1A679B37",
-  "bin_url": "https://raw.githubusercontent.com/kenhkythuat/ebee_vnpt_green/refs/heads/feature/connect_server_vnpt/ota/ebee_v1.1.0.bin"
+  "size": 70676,
+  "crc32": "0xD078025A",
+  "bin_url": "https://raw.githubusercontent.com/kenhkythuat/ebee_vnpt_green/refs/heads/feature/connect_server_vnpt/ota/ebee_v1.2.0.bin"
 }

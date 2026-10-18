@@ -28,6 +28,8 @@ enum GmsModemState
 	SleepStm32
 };
 extern enum GmsModemState current_status_simcom;
+extern volatile bool to_send_status_to_server;
+extern volatile bool ota_non_modem_io_paused;
 //extern current_status_simcom;
 void send_to_simcom_a76xx(char *cmd);
 bool enable_mqtt_on_gsm_modem(void);

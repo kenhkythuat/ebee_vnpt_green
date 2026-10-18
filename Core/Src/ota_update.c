@@ -12,6 +12,7 @@
 
 #define OTA_UART_CAPTURE_SIZE 700U
 #define OTA_HTTP_READ_CHUNK   256U
+#define OTA_HTTP_READ_RETRIES 3U
 #define OTA_MANIFEST_MAX_SIZE 600U
 
 extern UART_HandleTypeDef huart1;
@@ -21,6 +22,8 @@ extern void send_to_simcom_a76xx(char *cmd);
 static uint8_t s_uart_capture[OTA_UART_CAPTURE_SIZE];
 static volatile uint16_t s_uart_capture_len;
 static volatile bool s_uart_capture_active;
+static volatile uint32_t s_uart_error_count;
+static volatile uint32_t s_uart_last_error;
 static bool s_ota_busy;
 static char s_manifest_json[OTA_MANIFEST_MAX_SIZE];
 
@@ -77,6 +80,11 @@ bool ota_uart_rx_capture(const uint8_t *data, uint16_t length) {
   __DMB();
   s_uart_capture_len = write_at;
   return true;
+}
+
+void ota_uart_rx_error(uint32_t error_code) {
+  s_uart_last_error = error_code;
+  s_uart_error_count++;
 }
 
 static int32_t capture_find(const char *needle) {
@@ -292,7 +300,8 @@ static bool http_open(const char *url, uint32_t *content_length) {
       !send_command_wait("AT+HTTPPARA=\"SSLCFG\",0\r\n", "OK", 2000U) ||
       !send_command_wait("AT+HTTPPARA=\"CONNECTTO\",120\r\n", "OK",
                          2000U) ||
-      !send_command_wait("AT+HTTPPARA=\"RECVTO\",120\r\n", "OK", 2000U)) {
+      !send_command_wait("AT+HTTPPARA=\"RECVTO\",120\r\n", "OK", 2000U) ||
+      !send_command_wait("AT+HTTPPARA=\"READMODE\",1\r\n", "OK", 2000U)) {
     return false;
   }
 
@@ -334,96 +343,155 @@ static bool http_open(const char *url, uint32_t *content_length) {
 static void http_close(void) { http_terminate_if_active(); }
 
 static bool parse_httpread_header(uint16_t *body_at, uint16_t *body_length) {
-  int32_t header_at = capture_find("+HTTPREAD:");
+  static const char header[] = "+HTTPREAD:";
   uint16_t used = s_uart_capture_len;
-  uint16_t cursor;
-  uint32_t value = 0U;
-  bool has_digit = false;
+  const uint16_t header_len = (uint16_t)(sizeof(header) - 1U);
 
-  if (header_at < 0) {
-    return false;
-  }
-  cursor = (uint16_t)header_at + (uint16_t)strlen("+HTTPREAD:");
-  while (cursor < used &&
-         (s_uart_capture[cursor] == ' ' || s_uart_capture[cursor] == 'D' ||
-          s_uart_capture[cursor] == 'A' || s_uart_capture[cursor] == 'T' ||
-          s_uart_capture[cursor] == ',')) {
-    cursor++;
-  }
-  while (cursor < used && s_uart_capture[cursor] >= '0' &&
-         s_uart_capture[cursor] <= '9') {
-    has_digit = true;
-    value = value * 10U + (uint32_t)(s_uart_capture[cursor] - '0');
-    cursor++;
-  }
-  if (!has_digit || value > OTA_HTTP_READ_CHUNK) {
-    return false;
-  }
-  while ((cursor + 1U) < used) {
-    if (s_uart_capture[cursor] == '\r' &&
-        s_uart_capture[cursor + 1U] == '\n') {
-      *body_at = cursor + 2U;
-      *body_length = (uint16_t)value;
-      return true;
+  /* A delayed "+HTTPREAD: 0" trailer from the preceding command can arrive
+   * after the next capture starts. Scan all headers and select a data header
+   * instead of getting stuck on that zero-length trailer. */
+  for (uint16_t start = 0U; start + header_len <= used; start++) {
+    uint16_t cursor;
+    uint32_t value = 0U;
+    bool has_digit = false;
+
+    if (memcmp(&s_uart_capture[start], header, header_len) != 0) {
+      continue;
     }
-    cursor++;
+    cursor = (uint16_t)(start + header_len);
+    while (cursor < used &&
+           (s_uart_capture[cursor] == ' ' || s_uart_capture[cursor] == 'D' ||
+            s_uart_capture[cursor] == 'A' || s_uart_capture[cursor] == 'T' ||
+            s_uart_capture[cursor] == ',')) {
+      cursor++;
+    }
+    while (cursor < used && s_uart_capture[cursor] >= '0' &&
+           s_uart_capture[cursor] <= '9') {
+      has_digit = true;
+      value = value * 10U + (uint32_t)(s_uart_capture[cursor] - '0');
+      cursor++;
+    }
+    if (!has_digit || value == 0U || value > OTA_HTTP_READ_CHUNK) {
+      continue;
+    }
+    while ((cursor + 1U) < used) {
+      if (s_uart_capture[cursor] == '\r' &&
+          s_uart_capture[cursor + 1U] == '\n') {
+        *body_at = cursor + 2U;
+        *body_length = (uint16_t)value;
+        return true;
+      }
+      cursor++;
+    }
   }
   return false;
 }
 
 static bool http_read_binary(uint32_t offset, uint16_t requested,
                              uint8_t *output, uint16_t *received) {
-  uint32_t started;
-  uint16_t body_at = 0U;
-  uint16_t body_length = 0U;
+  for (uint8_t attempt = 1U; attempt <= OTA_HTTP_READ_RETRIES; attempt++) {
+    uint32_t started;
+    uint16_t body_at = 0U;
+    uint16_t body_length = 0U;
+    uint16_t body_end = 0U;
+    bool header_found = false;
+    bool body_complete = false;
+    bool modem_error = false;
+    uint32_t body_complete_at = 0U;
+    uint32_t uart_errors_before = s_uart_error_count;
 
-  snprintf(array_at_command, sizeof(array_at_command),
-           "AT+HTTPREAD=%lu,%u\r\n", (unsigned long)offset, requested);
-  capture_begin();
-  send_to_simcom_a76xx(array_at_command);
-  started = HAL_GetTick();
+    *received = 0U;
+    snprintf(array_at_command, sizeof(array_at_command),
+             "AT+HTTPREAD=%lu,%u\r\n", (unsigned long)offset, requested);
+    capture_begin();
+    send_to_simcom_a76xx(array_at_command);
+    started = HAL_GetTick();
 
-  while ((HAL_GetTick() - started) < 15000U) {
-    if (parse_httpread_header(&body_at, &body_length) &&
-        s_uart_capture_len >= (uint16_t)(body_at + body_length)) {
-      memcpy(output, &s_uart_capture[body_at], body_length);
-      *received = body_length;
-      capture_end();
-      return body_length > 0U;
+    while ((HAL_GetTick() - started) < 15000U) {
+      header_found = parse_httpread_header(&body_at, &body_length);
+      if (header_found && body_length > 0U &&
+          body_at <= (uint16_t)(UINT16_MAX - body_length)) {
+        body_end = (uint16_t)(body_at + body_length);
+        body_complete = s_uart_capture_len >= body_end;
+        if (body_complete && body_complete_at == 0U) {
+          body_complete_at = HAL_GetTick();
+        }
+      }
+
+      /* Keep a very short guard interval for the modem's trailing status.
+       * This replaces the old fixed 30 ms delay and prevents the next command
+       * from overlapping the end of the current response. */
+      if (body_complete && (HAL_GetTick() - body_complete_at) >= 3U) {
+        memcpy(output, &s_uart_capture[body_at], body_length);
+        *received = body_length;
+        capture_end();
+        return true;
+      }
+
+      if (!header_found && capture_find("\r\nERROR\r\n") >= 0) {
+        modem_error = true;
+        break;
+      }
+      watchdog_feed();
+      HAL_Delay(1U);
     }
-    if (capture_find("\r\nERROR\r\n") >= 0) {
-      break;
+
+    capture_end();
+    printf("[OTA] HTTPREAD attempt %u/%u failed offset=%lu requested=%u "
+           "captured=%u header=%u body=%u complete=%u error=%u\r\n",
+           attempt, OTA_HTTP_READ_RETRIES, (unsigned long)offset, requested,
+           s_uart_capture_len, header_found ? 1U : 0U, body_length,
+           body_complete ? 1U : 0U, modem_error ? 1U : 0U);
+    if (s_uart_error_count != uart_errors_before) {
+      printf("[OTA] USART1 error count=%lu last=0x%08lX\r\n",
+             (unsigned long)s_uart_error_count,
+             (unsigned long)s_uart_last_error);
     }
-    watchdog_feed();
-    HAL_Delay(10);
+
+    if (attempt < OTA_HTTP_READ_RETRIES) {
+      watchdog_feed();
+      HAL_Delay(250U);
+    }
   }
 
-  capture_end();
-  printf("[OTA] HTTPREAD failed offset=%lu\r\n", (unsigned long)offset);
+  printf("[OTA] HTTPREAD failed after retries offset=%lu\r\n",
+         (unsigned long)offset);
   return false;
 }
 
 static bool http_get_text(const char *url, char *output, uint32_t capacity) {
   uint32_t content_length;
-  uint16_t received;
+  uint32_t offset = 0U;
 
   if (!http_open(url, &content_length)) {
     return false;
   }
-  if (content_length == 0U || content_length >= capacity ||
-      content_length > OTA_HTTP_READ_CHUNK) {
+  if (content_length == 0U || content_length >= capacity) {
     printf("[OTA] manifest length invalid=%lu\r\n",
            (unsigned long)content_length);
     http_close();
     return false;
   }
-  if (!http_read_binary(0U, (uint16_t)content_length, (uint8_t *)output,
-                        &received) ||
-      received != content_length) {
-    http_close();
-    return false;
+
+  while (offset < content_length) {
+    uint32_t remaining = content_length - offset;
+    uint16_t requested = remaining > OTA_HTTP_READ_CHUNK
+                             ? OTA_HTTP_READ_CHUNK
+                             : (uint16_t)remaining;
+    uint16_t received = 0U;
+
+    if (!http_read_binary(offset, requested, (uint8_t *)&output[offset],
+                          &received) ||
+        received != requested) {
+      printf("[OTA] manifest read failed offset=%lu expected=%u got=%u\r\n",
+             (unsigned long)offset, requested, received);
+      http_close();
+      return false;
+    }
+    offset += received;
   }
-  output[received] = '\0';
+
+  output[content_length] = '\0';
   http_close();
   return true;
 }
@@ -554,6 +622,8 @@ static bool download_firmware(const ota_manifest_t *manifest) {
 void ota_init(void) {
   s_uart_capture_active = false;
   s_uart_capture_len = 0U;
+  s_uart_error_count = 0U;
+  s_uart_last_error = 0U;
   s_ota_busy = false;
   if (ota_metadata_is_pending()) {
     printf("[OTA] pending image found; bootloader is required\r\n");
@@ -606,5 +676,6 @@ bool ota_uart_rx_capture(const uint8_t *data, uint16_t length) {
   (void)length;
   return false;
 }
+void ota_uart_rx_error(uint32_t error_code) { (void)error_code; }
 
 #endif
