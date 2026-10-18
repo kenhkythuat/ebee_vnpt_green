@@ -26,7 +26,7 @@
 #define OTA_ENABLE 1
 #endif
 #ifndef OTA_MANIFEST_URL
-#define OTA_MANIFEST_URL "https://gitlab.com/agriconnect/embedded/ebee_stm32f103ret6/-/raw/ota_ebee_v1/ota/manifest.json"
+#define OTA_MANIFEST_URL "https://raw.githubusercontent.com/kenhkythuat/ebee_vnpt_green/refs/heads/feature/connect_server_vnpt/ota/manifest.json"
 #endif
 #ifndef OTA_DEVICE_ID
 #define OTA_DEVICE_ID "ebee-stm32f103ret6"

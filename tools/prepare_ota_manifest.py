@@ -7,9 +7,9 @@ from pathlib import Path
 
 
 DEFAULT_BASE_URL = (
-    "https://gitlab.com/agriconnect/embedded/ebee_stm32f103ret6/-/raw"
+    "https://raw.githubusercontent.com/kenhkythuat/ebee_vnpt_green/refs/heads"
 )
-DEFAULT_BRANCH = "ota_ebee_v1"
+DEFAULT_BRANCH = "feature/connect_server_vnpt"
 DEFAULT_DEVICE = "ebee-stm32f103ret6"
 DEFAULT_APP_ADDR = 0x08008000
 DEFAULT_MAX_SIZE = 224 * 1024

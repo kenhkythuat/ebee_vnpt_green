@@ -57,11 +57,11 @@ Các macro nằm trong `Core/Inc/config.h` và có thể override bằng `Core/I
 ```c
 #define VERSION_EBEE "1.0.0"
 #define OTA_ENABLE 1
-#define OTA_MANIFEST_URL "https://gitlab.com/agriconnect/embedded/ebee_stm32f103ret6/-/raw/ota_ebee_v1/ota/manifest.json"
+#define OTA_MANIFEST_URL "https://raw.githubusercontent.com/kenhkythuat/ebee_vnpt_green/refs/heads/feature/connect_server_vnpt/ota/manifest.json"
 #define OTA_DEVICE_ID "ebee-stm32f103ret6"
 ```
 
-`OTA_MANIFEST_URL` và mọi `bin_url` phải truy cập được trực tiếp từ SIMCOM mà không cần đăng nhập, cookie hoặc token trình duyệt. Nếu GitLab project là private, hãy dùng public raw endpoint/object storage hoặc URL HTTPS khác và override `OTA_MANIFEST_URL`.
+`OTA_MANIFEST_URL` và mọi `bin_url` phải truy cập được trực tiếp từ SIMCOM mà không cần đăng nhập, cookie hoặc token trình duyệt. Repository GitHub phải public; nếu chuyển sang private, hãy dùng object storage/public HTTPS endpoint khác và override `OTA_MANIFEST_URL`.
 
 ## 5. MQTT trigger
 
@@ -153,14 +153,14 @@ Trong STM32CubeIDE:
 3. Tạo `.bin` liên tục và `manifest.json`:
 
 ```powershell
-python tools/prepare_ota_manifest.py --firmware Debug/EBEE_STM32F103RET6.hex --version 1.1.0 --branch ota_ebee_v1
+python tools/prepare_ota_manifest.py --firmware Debug/EBEE_STM32F103RET6.hex --version 1.1.0
 ```
 
 Script kiểm tra vector table, giới hạn kích thước, tạo `ota/ebee_v1.1.0.bin`, tính CRC32 và tạo `ota/manifest.json`.
 
 4. Upload/push file `.bin` trước, sau đó mới cập nhật `manifest.json`. Làm theo thứ tự này để thiết bị không đọc manifest mới khi binary chưa sẵn sàng.
 5. Kiểm tra trực tiếp cả URL manifest và `bin_url` bằng kết nối không đăng nhập.
-6. Gửi lệnh MQTT `ota_update` và theo dõi log `[OTA]`.
+6. Gửi `{"OTA":"ota_check"}` qua topic `v1/devices/me/attributes` và theo dõi log `[OTA]`.
 
 ## 9. Xử lý lỗi và kiểm thử
 

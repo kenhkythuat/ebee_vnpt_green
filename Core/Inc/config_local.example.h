@@ -22,7 +22,7 @@
 
 #define VERSION_EBEE "1.0.0"
 #define OTA_ENABLE 1
-#define OTA_MANIFEST_URL "https://gitlab.com/agriconnect/embedded/ebee_stm32f103ret6/-/raw/ota_ebee_v1/ota/manifest.json"
+#define OTA_MANIFEST_URL "https://raw.githubusercontent.com/kenhkythuat/ebee_vnpt_green/refs/heads/feature/connect_server_vnpt/ota/manifest.json"
 #define OTA_DEVICE_ID "ebee-stm32f103ret6"
 
 #define MQTT_USER "your_mqtt_username"
