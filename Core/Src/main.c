@@ -27,6 +27,7 @@
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
+#include "device_config.h"
 #include "ota_update.h"
 
 /* USER CODE END Includes */
@@ -165,6 +166,15 @@ int main(void)
   HAL_TIM_Base_Start_IT(&htim6);
   HAL_ADC_Start_DMA(&hadc1, (uint32_t *)adc_valve, 1);
   HAL_GPIO_WritePin(GPIOB, LED_STATUS_Pin|ENABLE_SENSOR_Pin, GPIO_PIN_SET);
+  {
+    const device_config_t *device_config = device_config_get();
+    if (device_config != NULL) {
+      printf("[CONFIG] factory configuration valid serial=%s client_id=%s\r\n",
+             device_config->serial_number, device_config->mqtt_client_id);
+    } else {
+      printf("[CONFIG] ERROR: flash bootloader with factory settings first\r\n");
+    }
+  }
   /* USER CODE END 2 */
 
   /* Infinite loop */
@@ -179,10 +189,24 @@ int main(void)
       if (to_start_ota && current_status_simcom == Subscribed)
       {
         ota_result_t ota_result;
+        bool ota_ack_sent = false;
 
         to_start_ota = false;
-        printf("[OTA] starting update check\r\n");
         pause_non_ota_io();
+        printf("[OTA] MQTT request accepted and queued (modem_state=%d)\r\n",
+               (int)current_status_simcom);
+        for (uint8_t attempt = 1U; attempt <= 3U; attempt++) {
+          printf("[OTA] ACK attempt %u/3\r\n", attempt);
+          if (publish_ota_ack_via_gsm()) {
+            ota_ack_sent = true;
+            break;
+          }
+          HAL_Delay(250U);
+        }
+        if (!ota_ack_sent) {
+          printf("[OTA] ACK unavailable; continuing update check\r\n");
+        }
+        printf("[OTA] starting update check\r\n");
         ota_result = ota_check_and_download();
         if (ota_result == OTA_RESULT_OK)
         {

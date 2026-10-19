@@ -1,0 +1,4 @@
+interface:
+  display_name: "STM32 SIMCom OTA"
+  short_description: "Port a verified STM32 OTA flow safely"
+  default_prompt: "Use $stm32-simcom-ota to implement the verified OTA flow in this STM32 project."

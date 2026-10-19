@@ -42,7 +42,8 @@ STM32F103RET6 có 512 KB Flash, page size 2 KB.
 
 | Vùng | Địa chỉ bắt đầu | Kích thước | Mục đích |
 |---|---:|---:|---|
-| Bootloader | `0x08000000` | 32 KB | Kiểm tra metadata và cài firmware |
+| Bootloader code | `0x08000000` | 30 KB | Provision config, kiểm tra metadata và cài firmware |
+| Factory config | `0x08007800` | 2 KB | Serial number và MQTT credential theo thiết bị |
 | OTA application | `0x08008000` | 224 KB | Firmware EBEE đang chạy |
 | Staging | `0x08040000` | 252 KB | Firmware mới đang tải |
 | OTA metadata | `0x0807F000` | 2 KB | Trạng thái pending, size và CRC32 |
@@ -86,6 +87,14 @@ mosquitto_pub -h <MQTT_HOST> -p <MQTT_PORT> -u <MQTT_USER> -P <MQTT_PASS> -q 1 -
 
 Firmware chỉ kích hoạt luồng OTA khi cùng một MQTT message có đúng topic `v1/devices/me/attributes` và payload `{"OTA":"ota_check"}`. Dữ liệu topic và payload được ghép qua nhiều lần nhận USART1 nếu URC của modem bị chia nhỏ. Sau đó thiết bị kiểm tra manifest và chỉ tải khi version mới lớn hơn `VERSION_EBEE`.
 
+Sau khi nhận đủ bản tin đến `+CMQTTRXEND`, thiết bị phản hồi trên cùng topic:
+
+```json
+{"OTA":"check_ok"}
+```
+
+Thiết bị dừng timer và UART cảm biến trước khi gửi ACK và bắt đầu OTA.
+
 Mỗi bản tin telemetry gửi lên `v1/devices/me/telemetry` có thêm phiên bản firmware hiện tại:
 
 ```json
@@ -118,8 +127,17 @@ Mỗi bản tin telemetry gửi lên `v1/devices/me/telemetry` có thêm phiên 
 
 ### 7.1 Build bootloader
 
+Đặt cấu hình riêng của thiết bị trong `Core/Inc/config_local.h`:
+
+```c
+#define FACTORY_SERIAL_NUMBER "eb_xxxxxx"
+#define FACTORY_MQTT_CLIENT_ID "..."
+#define FACTORY_MQTT_USER "..."
+#define FACTORY_MQTT_PASS "..."
+```
+
 ```powershell
-powershell -ExecutionPolicy Bypass -File .\tools\build_bootloader.ps1 -ToolchainBin "C:\ST\STM32CubeIDE_1.16.0\STM32CubeIDE\plugins\com.st.stm32cube.ide.mcu.externaltools.gnu-tools-for-stm32.13.3.rel1.win32_1.0.0.202411081344\tools\bin"
+powershell -ExecutionPolicy Bypass -File .\tools\build_bootloader.ps1
 ```
 
 Kết quả:
@@ -143,8 +161,9 @@ Trong STM32CubeIDE:
 2. Có thể mass erase khi chuyển thiết bị cũ sang layout OTA lần đầu.
 3. Nạp `Bootloader/build/ebee_bootloader.hex` tại vùng `0x08000000`.
 4. Nạp application `Debug/EBEE_STM32F103RET6.hex` hoặc bản Release đã link tại `0x08008000`.
-5. Reset thiết bị và xác nhận application khởi động bình thường.
-6. Từ lần sau không mass erase bootloader; firmware mới được phân phối bằng OTA.
+5. Reset thiết bị; bootloader sẽ ghi Factory Config vào `0x08007800` nếu trang này chưa hợp lệ.
+6. Xác nhận log `[CONFIG] factory configuration valid`.
+7. Từ lần sau không mass erase; firmware mới được phân phối bằng OTA và credential được giữ nguyên.
 
 ## 8. Tạo gói OTA
 

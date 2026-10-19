@@ -36,6 +36,7 @@ bool enable_mqtt_on_gsm_modem(void);
 bool acquire_gsm_mqtt_client(void);
 bool connect_mqtt_server_by_gsm(void);
 bool subscribe_mqtt_via_gsm(void);
+bool publish_ota_ack_via_gsm(void);
 bool stop_mqtt_via_gsm(void);
 void check_handle_state(enum GmsModemState status);
 #endif /* INC_COMMON_SIMCOM_H_ */

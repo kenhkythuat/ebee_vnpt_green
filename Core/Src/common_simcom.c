@@ -8,6 +8,7 @@
 #include "stdio.h"
 #include "cJSON.h"
 #include "config.h"
+#include "device_config.h"
 #include "stdbool.h"
 #include "stdio.h"
 #include "stdlib.h"
@@ -62,6 +63,14 @@ int is_connect_simcom = 0;
 int rssi = -99;
 float data_percentage_pin;
 
+static const device_config_t *require_device_config(void) {
+  const device_config_t *config = device_config_get();
+  if (config == NULL) {
+    printf("[CONFIG] factory configuration is missing or invalid\r\n");
+  }
+  return config;
+}
+
 
 void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim) {
   if (htim->Instance == htim6.Instance) {
@@ -105,6 +114,10 @@ int read_signal_quality(void) {
 }
 
 bool enable_mqtt_on_gsm_modem(void) {
+  const device_config_t *config = require_device_config();
+  if (config == NULL) {
+    return false;
+  }
   is_enable_mqtt = false;
 #if SIMCOM_MODEL == a7080
   send_to_simcom_a76xx("AT+CNACT=0,1\r\n");
@@ -115,13 +128,16 @@ bool enable_mqtt_on_gsm_modem(void) {
   HAL_Delay(400);
   send_to_simcom_a76xx("AT+SMCONF=\"KEEPTIME\",600\r\n");
   HAL_Delay(400);
-  sprintf(array_at_command, "AT+SMCONF=\"CLIENTID\",\"%s\"\r\n", MQTT_CLIENT_ID);
+  sprintf(array_at_command, "AT+SMCONF=\"CLIENTID\",\"%s\"\r\n",
+          config->mqtt_client_id);
   send_to_simcom_a76xx(array_at_command);
   HAL_Delay(400);
-  sprintf(array_at_command, "AT+SMCONF=\"USERNAME\",\"%s\"\r\n", MQTT_USER);
+  sprintf(array_at_command, "AT+SMCONF=\"USERNAME\",\"%s\"\r\n",
+          config->mqtt_user);
   send_to_simcom_a76xx(array_at_command);
   HAL_Delay(400);
-  sprintf(array_at_command, "AT+SMCONF=\"PASSWORD\",\"%s\"\r\n", MQTT_PASS);
+  sprintf(array_at_command, "AT+SMCONF=\"PASSWORD\",\"%s\"\r\n",
+          config->mqtt_pass);
   send_to_simcom_a76xx(array_at_command);
   HAL_Delay(400);
   send_to_simcom_a76xx("AT+SMCONF=\"CLEANSS\",1\r\n");
@@ -154,10 +170,15 @@ bool enable_mqtt_on_gsm_modem(void) {
 }
 
 bool acquire_gsm_mqtt_client(void) {
+  const device_config_t *config = require_device_config();
+  if (config == NULL) {
+    return false;
+  }
   is_acquiered_mqtt = false;
   memset(rx_data_sim, '\0', 700);
   printf("-----------------Acquire_gsm_mqtt_client------------------\n");
-  sprintf(array_at_command, "+CMQTTACCQ: 0,\"%s\",0\r\n", MQTT_CLIENT_ID);
+  sprintf(array_at_command, "+CMQTTACCQ: 0,\"%s\",0\r\n",
+          config->mqtt_client_id);
   send_to_simcom_a76xx("AT+CMQTTACCQ?\r\n");
   HAL_Delay(400);
   if (strstr((char *)rx_data_sim, array_at_command) != NULL) {
@@ -168,7 +189,8 @@ bool acquire_gsm_mqtt_client(void) {
     is_at_acquier_mqtt = false;
   }
   if (is_at_acquier_mqtt == false) {
-    sprintf(array_at_command, "AT+CMQTTACCQ=0,\"%s\",0\r\n", MQTT_CLIENT_ID);
+    sprintf(array_at_command, "AT+CMQTTACCQ=0,\"%s\",0\r\n",
+            config->mqtt_client_id);
     send_to_simcom_a76xx(array_at_command);
     HAL_Delay(300);
     //sprintf(array_at_command, "+CMQTTACCQ: 0,\"%s\",0", MQTT_CLIENT_ID);
@@ -332,8 +354,13 @@ void create_JSON(void) {
 }
 
 bool connect_mqtt_server_by_gsm(void) {
+  const device_config_t *config = require_device_config();
+  if (config == NULL) {
+    return false;
+  }
   is_connected_mqtt = false;
-  sprintf(array_at_command, "+CMQTTCONNECT: 0,\"%s:%d\",60,1,\"%s\",\"%s\"\r\n", MQTT_HOST, MQTT_PORT, MQTT_USER, MQTT_PASS);
+  sprintf(array_at_command, "+CMQTTCONNECT: 0,\"%s:%d\",60,1,\"%s\",\"%s\"\r\n",
+          MQTT_HOST, MQTT_PORT, config->mqtt_user, config->mqtt_pass);
   HAL_Delay(200);
   send_to_simcom_a76xx("AT+CMQTTCONNECT?\r\n");
   HAL_Delay(200);
@@ -347,7 +374,8 @@ bool connect_mqtt_server_by_gsm(void) {
   }
   if (is_at_connect_mqtt == false) {
 	memset(rx_data_sim, '\0', 700);
-    sprintf(array_at_command, "AT+CMQTTCONNECT=0,\"%s:%d\",60,1,\"%s\",\"%s\"\r\n", MQTT_HOST, MQTT_PORT, MQTT_USER, MQTT_PASS);
+    sprintf(array_at_command, "AT+CMQTTCONNECT=0,\"%s:%d\",60,1,\"%s\",\"%s\"\r\n",
+            MQTT_HOST, MQTT_PORT, config->mqtt_user, config->mqtt_pass);
     send_to_simcom_a76xx(array_at_command);
     HAL_Delay(2000);
     if (strstr((char *)rx_data_sim, "+CMQTTCONNECT: 0,0") != NULL || strstr((char *)rx_data_sim, "OK") != NULL) {
@@ -402,9 +430,13 @@ static bool subscribe_mqtt_topic_via_gsm(const char *topic) {
 
 bool subscribe_mqtt_via_gsm(void) {
   char control_topic[200];
+  const device_config_t *config = require_device_config();
+  if (config == NULL) {
+    return false;
+  }
 
   snprintf(control_topic, sizeof(control_topic), "%s/snac/%s/#", FARM,
-           SERIAL_NUMBER);
+           config->serial_number);
 
   is_at_subcribe_topic_mqtt = subscribe_mqtt_topic_via_gsm(control_topic);
   if (!is_at_subcribe_topic_mqtt) {
@@ -639,6 +671,13 @@ void restart_stm32(void) {
   NVIC_SystemReset();
 }
 bool publish_mqtt_via_gsm(void) {
+  const device_config_t *config = require_device_config();
+  char actuator_topic[128];
+  if (config == NULL) {
+    return false;
+  }
+  snprintf(actuator_topic, sizeof(actuator_topic), "%s/sn/%s", FARM,
+           config->serial_number);
   //  is used to input the topic of a publish message
   create_JSON();
 #if SIMCOM_MODEL == a7080
@@ -654,7 +693,8 @@ bool publish_mqtt_via_gsm(void) {
   }
   send_to_simcom_a76xx("AT+CGREG?\r\n");
   HAL_Delay(200);
-  sprintf(array_at_command, "AT+SMPUB=\"%s\",%d,0,0\r\n", MQTT_TOPIC_ACTUATOR_STATUS, strlen(array_json));
+  sprintf(array_at_command, "AT+SMPUB=\"%s\",%d,0,0\r\n", actuator_topic,
+          strlen(array_json));
   send_to_simcom_a76xx(array_at_command);
   HAL_Delay(300);
   sprintf(array_at_command, "%s\r\n", array_json);
@@ -717,6 +757,81 @@ bool publish_mqtt_via_gsm(void) {
 #endif
   return false;
 }
+
+bool publish_ota_ack_via_gsm(void) {
+  static const char ota_ack_payload[] = "{\"OTA\":\"check_ok\"}";
+
+  printf("[OTA] publishing ACK topic=%s payload=%s\r\n",
+         MQTT_TOPIC_ATTRIBUTES_THINGSBOARD, ota_ack_payload);
+
+#if SIMCOM_MODEL == a7080
+  memset(rx_data_sim, '\0', sizeof(rx_data_sim));
+  send_to_simcom_a76xx("AT+SMSTATE?\r\n");
+  HAL_Delay(200U);
+  if (strstr((char *)rx_data_sim, "+SMSTATE: 1") == NULL) {
+    printf("[OTA] ACK failed: MQTT is offline\r\n");
+    return false;
+  }
+
+  memset(rx_data_sim, '\0', sizeof(rx_data_sim));
+  snprintf(array_at_command, sizeof(array_at_command),
+           "AT+SMPUB=\"%s\",%u,0,0\r\n", MQTT_TOPIC_ATTRIBUTES_THINGSBOARD,
+           (unsigned int)strlen(ota_ack_payload));
+  send_to_simcom_a76xx(array_at_command);
+  HAL_Delay(300U);
+  memset(rx_data_sim, '\0', sizeof(rx_data_sim));
+  snprintf(array_at_command, sizeof(array_at_command), "%s\r\n",
+           ota_ack_payload);
+  send_to_simcom_a76xx(array_at_command);
+  HAL_Delay(1000U);
+  if (strstr((char *)rx_data_sim, "OK") != NULL) {
+    printf("[OTA] ACK publish success\r\n");
+    return true;
+  }
+#else
+  memset(rx_data_sim, '\0', sizeof(rx_data_sim));
+  snprintf(array_at_command, sizeof(array_at_command),
+           "AT+CMQTTTOPIC=0,%u\r\n",
+           (unsigned int)strlen(MQTT_TOPIC_ATTRIBUTES_THINGSBOARD));
+  send_to_simcom_a76xx(array_at_command);
+  HAL_Delay(400U);
+
+  memset(rx_data_sim, '\0', sizeof(rx_data_sim));
+  send_to_simcom_a76xx(MQTT_TOPIC_ATTRIBUTES_THINGSBOARD);
+  HAL_Delay(400U);
+  if (strstr((char *)rx_data_sim, "OK") == NULL) {
+    printf("[OTA] ACK topic rejected\r\n");
+    return false;
+  }
+
+  memset(rx_data_sim, '\0', sizeof(rx_data_sim));
+  snprintf(array_at_command, sizeof(array_at_command),
+           "AT+CMQTTPAYLOAD=0,%u\r\n",
+           (unsigned int)strlen(ota_ack_payload));
+  send_to_simcom_a76xx(array_at_command);
+  HAL_Delay(400U);
+
+  memset(rx_data_sim, '\0', sizeof(rx_data_sim));
+  send_to_simcom_a76xx((char *)ota_ack_payload);
+  HAL_Delay(400U);
+  if (strstr((char *)rx_data_sim, "OK") == NULL) {
+    printf("[OTA] ACK payload rejected\r\n");
+    return false;
+  }
+
+  memset(rx_data_sim, '\0', sizeof(rx_data_sim));
+  send_to_simcom_a76xx("AT+CMQTTPUB=0,1,60\r\n");
+  HAL_Delay(1000U);
+  if (strstr((char *)rx_data_sim, "+CMQTTPUB: 0,0") != NULL) {
+    printf("[OTA] ACK publish success\r\n");
+    return true;
+  }
+#endif
+
+  printf("[OTA] ACK publish failed\r\n");
+  return false;
+}
+
 bool send_payload_signal_to_server(void) {
   for (int i = 1; i <= 3; i++) {
     is_published_mqtt = publish_mqtt_via_gsm();

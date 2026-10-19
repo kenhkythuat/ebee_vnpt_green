@@ -18,17 +18,17 @@
 #define FARM "your-farm"
 #define SIMCOM_MODEL a7680
 #define INTERVAL_PUPLISH_DATA 10
-#define SERIAL_NUMBER "eb_xxxxxx"
+#define FACTORY_SERIAL_NUMBER "eb_xxxxxx"
 
 #define VERSION_EBEE "1.0.0"
 #define OTA_ENABLE 1
 #define OTA_MANIFEST_URL "https://raw.githubusercontent.com/kenhkythuat/ebee_vnpt_green/refs/heads/feature/connect_server_vnpt/ota/manifest.json"
 #define OTA_DEVICE_ID "ebee-stm32f103ret6"
 
-#define MQTT_USER "your_mqtt_username"
-#define MQTT_PASS "your_mqtt_password"
+#define FACTORY_MQTT_USER "your_mqtt_username"
+#define FACTORY_MQTT_PASS "your_mqtt_password"
 #define MQTT_HOST "tcp://iot-demo.vnptgreen.vn"
-#define MQTT_CLIENT_ID "your_mqtt_client_id"
+#define FACTORY_MQTT_CLIENT_ID "your_mqtt_client_id"
 #define MQTT_PORT 1883
 
 #define RK520_01 false

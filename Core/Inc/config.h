@@ -18,7 +18,7 @@
 #define a7680 5  // 4G
 
 #ifndef VERSION_EBEE
-#define VERSION_EBEE "1.3.0"
+#define VERSION_EBEE "1.4.0"
 #endif
 
 /* OTA endpoint must be reachable by the SIMCOM modem without credentials. */
@@ -52,20 +52,32 @@
 #define INTERVAL_PUPLISH_DATA 10 // the time the device sends data to the server
 #endif
 
-// Serial number. Must be lower case.
-#ifndef SERIAL_NUMBER
-#define SERIAL_NUMBER "eb_000002"
+/* Factory values are copied once by the bootloader to 0x08007800. Legacy
+ * config_local.h names remain accepted so existing factory files still work. */
+#ifndef FACTORY_SERIAL_NUMBER
+#ifdef SERIAL_NUMBER
+#define FACTORY_SERIAL_NUMBER SERIAL_NUMBER
+#else
+#define FACTORY_SERIAL_NUMBER "eb_000002"
+#endif
 #endif
 
-#ifndef MQTT_USER
-#define MQTT_USER "" // User - connect to MQTT broker
+#ifndef FACTORY_MQTT_USER
+#ifdef MQTT_USER
+#define FACTORY_MQTT_USER MQTT_USER
+#else
+#define FACTORY_MQTT_USER ""
+#endif
 #endif
 
-#ifndef MQTT_PASS
-#define MQTT_PASS "" // Password - connect to MQTT broker
+#ifndef FACTORY_MQTT_PASS
+#ifdef MQTT_PASS
+#define FACTORY_MQTT_PASS MQTT_PASS
+#else
+#define FACTORY_MQTT_PASS ""
+#endif
 #endif
 
-#define MQTT_TOPIC_ACTUATOR_STATUS FARM "/sn/" SERIAL_NUMBER
 #define MQTT_TOPIC_SENSOR_THINGSBOARD "v1/devices/me/telemetry"
 #define MQTT_TOPIC_ATTRIBUTES_THINGSBOARD "v1/devices/me/attributes"
 
@@ -77,8 +89,12 @@
 #define MQTT_HOST "tcp://iot-demo.vnptgreen.vn" // MQTT broker
 #endif
 
-#ifndef MQTT_CLIENT_ID
-#define MQTT_CLIENT_ID "dttxzh7awplus0q2xmbg"
+#ifndef FACTORY_MQTT_CLIENT_ID
+#ifdef MQTT_CLIENT_ID
+#define FACTORY_MQTT_CLIENT_ID MQTT_CLIENT_ID
+#else
+#define FACTORY_MQTT_CLIENT_ID "dttxzh7awplus0q2xmbg"
+#endif
 #endif
 
 #ifndef MQTT_PORT

@@ -20,6 +20,7 @@
 
 static char mqtt_rx_window[MQTT_RX_WINDOW_SIZE];
 static size_t mqtt_rx_window_length;
+static bool mqtt_ota_command_seen;
 
 static HAL_StatusTypeDef start_receive_to_idle(UART_HandleTypeDef *huart) {
   if (huart->Instance == USART1) {
@@ -60,6 +61,7 @@ static void restart_receive_to_idle(UART_HandleTypeDef *huart) {
 static void reset_mqtt_rx_window(void) {
   mqtt_rx_window_length = 0U;
   mqtt_rx_window[0] = '\0';
+  mqtt_ota_command_seen = false;
 }
 
 static void append_mqtt_rx_window(const char *data, size_t length) {
@@ -91,12 +93,13 @@ static void handle_mqtt_ota_message(const char *data, size_t length) {
   append_mqtt_rx_window(data, length);
   if (strstr(mqtt_rx_window, MQTT_TOPIC_ATTRIBUTES_THINGSBOARD) != NULL &&
       strstr(mqtt_rx_window, ota_payload) != NULL) {
-    to_start_ota = true;
-    reset_mqtt_rx_window();
-    return;
+    mqtt_ota_command_seen = true;
   }
 
   if (strstr(mqtt_rx_window, "+CMQTTRXEND:") != NULL) {
+    if (mqtt_ota_command_seen) {
+      to_start_ota = true;
+    }
     reset_mqtt_rx_window();
   }
 }
