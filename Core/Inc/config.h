@@ -11,6 +11,16 @@
 #include "stdio.h"
 #include <string.h>
 
+/* Set to 0 for production firmware to remove all printf logging at compile
+ * time. Set to 1 while debugging to keep the existing SWO/ITM output. */
+#ifndef ENABLE_DEBUG
+#define ENABLE_DEBUG 0
+#endif
+
+#if (ENABLE_DEBUG == 0)
+#define printf(...) do { if (0) { printf(__VA_ARGS__); } } while (0)
+#endif
+
 #define a7672s 1
 #define a7670c 2
 #define a7670sa 3

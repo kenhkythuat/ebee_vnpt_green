@@ -12,6 +12,7 @@
 #define INC_COMMON_MODBUS_RS485_H_
 
 extern char rx_buffer_sensor[30];
+extern volatile uint16_t rx_buffer_sensor_length;
 uint16_t modbus_crc16(uint8_t *buf, uint16_t len);
 extern void read_sensor(void);
 
@@ -65,6 +66,7 @@ extern float data_soil_kali__NBL_S_NPK;
 
 #if CO2_UART
 extern int data_co2;
+extern bool data_co2_valid;
 #endif
 
 

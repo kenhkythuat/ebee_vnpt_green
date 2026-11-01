@@ -13,55 +13,57 @@
 #include "stdlib.h"
 #include "string.h"
 #include <main.h>
+#include <math.h>
 
 extern UART_HandleTypeDef huart4;
 extern UART_HandleTypeDef huart2;
 char rx_buffer_sensor[30];
+volatile uint16_t rx_buffer_sensor_length;
 
 // data PH Fuvitech
-float data_ph_fuvitech;
-float data_measured_ph_fuvitech;
-float data_temperature_ph_fuvitech;
+float data_ph_fuvitech = NAN;
+float data_measured_ph_fuvitech = NAN;
+float data_temperature_ph_fuvitech = NAN;
 // data EC Fuvitech
-float data_ec_fuvitech;
-float data_conductivity_ec_fuvitech;
-float data_resistivity_ec_fuvitech;
-float data_temperateure_ec_fuvitech;
-float data_tds_ec_fuvitech;
-float data_salinity_ec_fuvitech;
+float data_ec_fuvitech = NAN;
+float data_conductivity_ec_fuvitech = NAN;
+float data_resistivity_ec_fuvitech = NAN;
+float data_temperateure_ec_fuvitech = NAN;
+float data_tds_ec_fuvitech = NAN;
+float data_salinity_ec_fuvitech = NAN;
 
 // data DO Fuvitech
-float data_do_fuvitech;
-float data_dissolved_oxygen_fuvitech;
-float data_temperature_do_fuvitech;
+float data_do_fuvitech = NAN;
+float data_dissolved_oxygen_fuvitech = NAN;
+float data_temperature_do_fuvitech = NAN;
 
 // number address is 1
 #if RK520_01
 unsigned char command_rika520_01[8] = {0x01, 0x03, 0x00, 0x00, 0x00, 0x02, 0xC4, 0x0B};
-float data_soil_temperature_rika520_01;
-float data_soil_moisture_rika520_01;
+float data_soil_temperature_rika520_01 = NAN;
+float data_soil_moisture_rika520_01 = NAN;
 uint8_t respone_rk520_01 = false;
 #endif
 
 // number address is 2
 #if RK520_02
 unsigned char command_rika520_02[8] = {0x02, 0x03, 0x00, 0x00, 0x00, 0x03, 0x05, 0xF8};
-float data_soil_temperature_rika520_02;
-float data_soil_moisture_rika520_02;
-float EC_rk520_02 = 0;
+float data_soil_temperature_rika520_02 = NAN;
+float data_soil_moisture_rika520_02 = NAN;
+float EC_rk520_02 = NAN;
 uint8_t respone_rk520_02 = false;
 #endif
 
 #if NBL_S_TMC_7
 // unsigned char command_niubol_7in1[8] = {0x01, 0x03, 0x00, 0x00, 0x00, 0x07, 0x04, 0x08};
 unsigned char command_niubol_7in1[8] = {0x07, 0x03, 0x00, 0x00, 0x00, 0x07, 0x04, 0x6E};
-float data_soil_temperature_niubol_7 = 0;
-float data_soil_moisture_niubol_7 = 0;
-float data_soil_conductivity_niubol_7 = 0;
-float data_soil_pH_niubol_7 = 0;
-float data_soil_nitrogen_niubol_7 = 0;
-float data_soil_phospho_niubol_7 = 0;
-float data_soil_kali_niubol_7 = 0;
+float data_soil_temperature_niubol_7 = NAN;
+float data_soil_moisture_niubol_7 = NAN;
+float data_soil_conductivity_niubol_7 = NAN;
+float data_soil_pH_niubol_7 = NAN;
+float data_soil_nitrogen_niubol_7 = NAN;
+float data_soil_phospho_niubol_7 = NAN;
+float data_soil_kali_niubol_7 = NAN;
 uint8_t respone_niubol_7in1 = false;
 #endif
 
@@ -69,9 +71,9 @@ uint8_t respone_niubol_7in1 = false;
 #if NBL_S_NPK
 // unsigned char data_nbl_s_npk[8] = {0x01, 0x03, 0x00, 0x00, 0x00, 0x03, 0x05, 0xCB};
 unsigned char command_nbl_s_npk[8] = {0x03, 0x03, 0x00, 0x00, 0x00, 0x03, 0x04, 0x29};
-float data_soil_nitrogen_NBL_S_NPK = 0;
-float data_soil_phospho__NBL_S_NPK = 0;
-float data_soil_kali__NBL_S_NPK = 0;
+float data_soil_nitrogen_NBL_S_NPK = NAN;
+float data_soil_phospho__NBL_S_NPK = NAN;
+float data_soil_kali__NBL_S_NPK = NAN;
 
 uint8_t respone_nbl_s_npk = false;
 #endif
@@ -79,7 +81,7 @@ uint8_t respone_nbl_s_npk = false;
 // number address is 5
 #if rk500_02
 unsigned char rika500_02[8] = {0x05, 0x03, 0x00, 0x00, 0x00, 0x01, 0x85, 0x8E};
-float data_soil_pH = 0;
+float data_soil_pH = NAN;
 uint8_t respone_rk500_02 = false;
 #endif
 
@@ -113,47 +115,48 @@ unsigned char salinity_command_ec_fuvitech[8] = {0x01, 0x03, 0x00, 0x08, 0x00, 0
 #if SM7820_RS485
 unsigned char command_sm7820b[8] = {0x0B, 0x03, 0x00, 0x00, 0x00, 0x02, 0xC4, 0xA1};
 uint8_t respone_sm7820b = false;
-float data_air_temperature;
-float data_air_humidity;
+float data_air_temperature = NAN;
+float data_air_humidity = NAN;
 
 #endif
 
 // number address is 10
 #if LX200K_485
 unsigned char command_lx200k_485[8] = {0x0A, 0x03, 0x00, 0x02, 0x00, 0x02, 0x64, 0xB0};
-float data_light_lx200k = 0;
+float data_light_lx200k = NAN;
 uint8_t respone_lx200k_485 = false;
 #endif
 
 // PT100 register 0x0001 (Modbus start address 0x0000), device address 12
 #if PT100_01
 unsigned char command_pt100_01[8] = {0x0C, 0x03, 0x00, 0x00, 0x00, 0x01, 0x85, 0x17};
-float temperature_pt100_1 = 0.0f;
+float temperature_pt100_1 = NAN;
 #endif
 
 // PT100 register 0x0001 (Modbus start address 0x0000), device address 13
 #if PT100_02
 unsigned char command_pt100_02[8] = {0x0D, 0x03, 0x00, 0x00, 0x00, 0x01, 0x84, 0xC6};
-float temperature_pt100_2 = 0.0f;
+float temperature_pt100_2 = NAN;
 #endif
 
 // YW001 pressure and decimal places, device address 14
 #if YW001
 unsigned char command_yw001[8] = {0x0E, 0x04, 0x00, 0x00, 0x00, 0x02, 0x71, 0x34};
-float water_level = 0.0f;
+float water_level = NAN;
 #endif
 
 #if RK500_22
 unsigned char command_rk500_22[8] = {0x06, 0x03, 0x00, 0x00, 0x00, 0x02, 0xC5, 0xBC};
 // unsigned char command_rk500_22[8] = { 0x03, 0x06, 0x00, 0x14, 0x00, 0x06, 0x48, 0x2E };
-float data_ph_rk500_22 = 0;
+float data_ph_rk500_22 = NAN;
 uint8_t respone_ph_rk500_22 = false;
 #endif
 
 #if CO2_UART
 unsigned char command_co2[9] = {0xFF, 0x01, 0x86, 0x00, 0x00, 0x00, 0x00, 0x00, 0x79};
 uint8_t rx_co2[10];
-int data_co2;
+int data_co2 = -1;
+bool data_co2_valid = false;
 uint8_t respone_co2 = false;
 #endif
 
@@ -172,6 +175,31 @@ uint16_t modbus_crc16(uint8_t *buf, uint16_t len)
     }
   }
   return crc;
+}
+
+static bool modbus_response_is_valid(const uint8_t *request)
+{
+  const uint16_t register_count = ((uint16_t)request[4] << 8) | request[5];
+  const uint16_t byte_count = register_count * 2U;
+  const uint16_t expected_length = byte_count + 5U;
+  uint16_t received_crc;
+  uint16_t calculated_crc;
+
+  if (register_count == 0U || expected_length > sizeof(rx_buffer_sensor) ||
+      rx_buffer_sensor_length < expected_length ||
+      (uint8_t)rx_buffer_sensor[0] != request[0] ||
+      (uint8_t)rx_buffer_sensor[1] != request[1] ||
+      (uint8_t)rx_buffer_sensor[2] != byte_count)
+  {
+    return false;
+  }
+
+  calculated_crc = modbus_crc16((uint8_t *)rx_buffer_sensor,
+                                expected_length - 2U);
+  received_crc = (uint16_t)(uint8_t)rx_buffer_sensor[expected_length - 2U] |
+                 ((uint16_t)(uint8_t)rx_buffer_sensor[expected_length - 1U]
+                  << 8);
+  return calculated_crc == received_crc;
 }
 
 float modbus_bytes_to_float(char *data, int offset)
@@ -235,35 +263,71 @@ static bool yw001_response_to_water_level_cm(const char *response, float *water_
 }
 #endif
 
-float send_data_to_rs485(uint8_t *data, char *data_log)
+bool send_data_to_rs485(uint8_t *data, char *data_log)
 {
   printf("Read measured form %s\r\n", data_log);
   memset(rx_buffer_sensor, '\0', 30);
+  rx_buffer_sensor_length = 0U;
   HAL_Delay(200);
-  HAL_UART_Transmit(&huart4, data, 8, 1000);
+  if (HAL_UART_Transmit(&huart4, data, 8, 1000) != HAL_OK)
+  {
+    printf("[MODBUS] %s transmit failed\r\n", data_log);
+    return false;
+  }
   HAL_Delay(700);
-  return 1;
+  if (!modbus_response_is_valid(data))
+  {
+    printf("[MODBUS] %s no/invalid response length=%u\r\n", data_log,
+           rx_buffer_sensor_length);
+    return false;
+  }
+  return true;
 }
 
-float send_data_to_(uint8_t *data, char *data_log)
+bool send_data_to_(uint8_t *data, char *data_log)
 {
-  printf("Read measured form %s\r\n", data_log);
-  memset(rx_buffer_sensor, '\0', 30);
-  HAL_Delay(200);
-  HAL_UART_Transmit(&huart4, data, 8, 1000);
-  HAL_Delay(700);
-  return 1;
+  return send_data_to_rs485(data, data_log);
 }
 
-float send_data_co2(uint8_t *data, char *data_log)
+#if CO2_UART
+static bool co2_response_is_valid(void)
+{
+  uint8_t checksum = 0U;
+
+  if (rx_uart2_length < 9U || (uint8_t)rx_uart2[0] != 0xFFU ||
+      (uint8_t)rx_uart2[1] != 0x86U)
+  {
+    return false;
+  }
+
+  for (uint8_t index = 1U; index <= 7U; index++)
+  {
+    checksum = (uint8_t)(checksum + (uint8_t)rx_uart2[index]);
+  }
+  checksum = (uint8_t)(0xFFU - checksum + 1U);
+  return checksum == (uint8_t)rx_uart2[8];
+}
+
+static bool send_data_co2(uint8_t *data, char *data_log)
 {
   printf("Read data CO2 form %s\r\n", data_log);
-  //memset(rx_uart2, '\0', 10);
+  memset(rx_uart2, '\0', sizeof(rx_uart2));
+  rx_uart2_length = 0U;
   HAL_Delay(100);
-  HAL_UART_Transmit(&huart2, data, 9, 1000);
+  if (HAL_UART_Transmit(&huart2, data, 9, 1000) != HAL_OK)
+  {
+    printf("[CO2] UART transmit failed\r\n");
+    return false;
+  }
   HAL_Delay(500);
-  return 1;
+  if (!co2_response_is_valid())
+  {
+    printf("[CO2] no/invalid response length=%u\r\n", rx_uart2_length);
+    return false;
+  }
+  return true;
 }
+#endif
 
 void read_sensor(void)
 {
@@ -271,151 +335,245 @@ void read_sensor(void)
   for (int i = 0; i < 2; i++)
   {
 #if ph_fuvitech
-    data_measured_ph_fuvitech = send_data_to_rs485(measured_command_ph_fuvitech, "PH");
-    data_temperature_ph_fuvitech = send_data_to_rs485(temperature_command_ph_fuvitech, "PH");
+    data_measured_ph_fuvitech =
+        send_data_to_rs485(measured_command_ph_fuvitech, "PH")
+            ? modbus_bytes_to_float(rx_buffer_sensor, 3) : NAN;
+    data_temperature_ph_fuvitech =
+        send_data_to_rs485(temperature_command_ph_fuvitech, "PH")
+            ? modbus_bytes_to_float(rx_buffer_sensor, 3) : NAN;
 #endif
     // read EC Fuvitech
 #if ec_fuvitech
-    data_conductivity_ec_fuvitech = (send_data_to_rs485(conductivity_command_ec_fuvitech, "EC")) * 1000;
-    data_resistivity_ec_fuvitech = send_data_to_rs485(resistivity_command_ec_fuvitech, "EC");
-    data_temperateure_ec_fuvitech = send_data_to_rs485(temperateure_command_ec_fuvitech, "EC");
-    data_tds_ec_fuvitech = send_data_to_rs485(tds_command_ec_fuvitech, "EC");
-    data_salinity_ec_fuvitech = (send_data_to_rs485(tds_command_ec_fuvitech, "EC") / 640);
+    data_conductivity_ec_fuvitech =
+        send_data_to_rs485(conductivity_command_ec_fuvitech, "EC")
+            ? modbus_bytes_to_float(rx_buffer_sensor, 3) * 1000.0f : NAN;
+    data_resistivity_ec_fuvitech =
+        send_data_to_rs485(resistivity_command_ec_fuvitech, "EC")
+            ? modbus_bytes_to_float(rx_buffer_sensor, 3) : NAN;
+    data_temperateure_ec_fuvitech =
+        send_data_to_rs485(temperateure_command_ec_fuvitech, "EC")
+            ? modbus_bytes_to_float(rx_buffer_sensor, 3) : NAN;
+    data_tds_ec_fuvitech =
+        send_data_to_rs485(tds_command_ec_fuvitech, "EC")
+            ? modbus_bytes_to_float(rx_buffer_sensor, 3) : NAN;
+    data_salinity_ec_fuvitech = isfinite(data_tds_ec_fuvitech)
+                                    ? data_tds_ec_fuvitech / 640.0f : NAN;
 #endif
 #if do_fuvitech
-    data_dissolved_oxygen_fuvitech = send_data_to_rs485(_command_do_fuvitech, "DO") / 100;
+    data_dissolved_oxygen_fuvitech =
+        send_data_to_rs485(command_do_fuvitech, "DO")
+            ? modbus_bytes_to_float(rx_buffer_sensor, 3) / 100.0f : NAN;
 #endif
 #if SM7820_RS485
-    data_air_temperature = send_data_to_rs485(command_sm7820b, "SM7820");
-    printf("data modbus SM7820B %s\r\n", rx_buffer_sensor);
-    data_air_temperature = (rx_buffer_sensor[3] << 8 | rx_buffer_sensor[4]) / 100;
-    printf("data_air_temperature %.2f\r\n", data_air_temperature);
-    data_air_humidity = (rx_buffer_sensor[5] << 8 | rx_buffer_sensor[6]) / 100;
-    printf("data_air_humidity %.2f\r\n", data_air_humidity);
+    if (send_data_to_rs485(command_sm7820b, "SM7820"))
+    {
+      data_air_temperature =
+          (float)(((uint16_t)(uint8_t)rx_buffer_sensor[3] << 8) |
+                  (uint8_t)rx_buffer_sensor[4]) / 100.0f;
+      data_air_humidity =
+          (float)(((uint16_t)(uint8_t)rx_buffer_sensor[5] << 8) |
+                  (uint8_t)rx_buffer_sensor[6]) / 100.0f;
+      printf("data_air_temperature %.2f\r\n", data_air_temperature);
+      printf("data_air_humidity %.2f\r\n", data_air_humidity);
+    }
+    else
+    {
+      data_air_temperature = NAN;
+      data_air_humidity = NAN;
+    }
     HAL_Delay(1000);
 #endif
 #if LX200K_485
-    data_light_lx200k = send_data_to_rs485(command_lx200k_485, "LK200K");
-    data_light_lx200k = (rx_buffer_sensor[3] << 24 | rx_buffer_sensor[4] << 16 | rx_buffer_sensor[5] << 8 | rx_buffer_sensor[6]) / 1000;
-    printf("data_light_sensor %.2f\r\n", data_light_lx200k);
+    if (send_data_to_rs485(command_lx200k_485, "LK200K"))
+    {
+      uint32_t raw_light = ((uint32_t)(uint8_t)rx_buffer_sensor[3] << 24) |
+                           ((uint32_t)(uint8_t)rx_buffer_sensor[4] << 16) |
+                           ((uint32_t)(uint8_t)rx_buffer_sensor[5] << 8) |
+                           (uint8_t)rx_buffer_sensor[6];
+      data_light_lx200k = (float)raw_light / 1000.0f;
+      printf("data_light_sensor %.2f\r\n", data_light_lx200k);
+    }
+    else
+    {
+      data_light_lx200k = NAN;
+    }
     HAL_Delay(1000);
 #endif
 
 #if PT100_01
-    send_data_to_rs485(command_pt100_01, "PT100_01");
-    temperature_pt100_1 = pt100_response_to_temperature(rx_buffer_sensor);
-    printf("temperature_pt100_1 %.1f\r\n", temperature_pt100_1);
+    if (send_data_to_rs485(command_pt100_01, "PT100_01"))
+    {
+      temperature_pt100_1 = pt100_response_to_temperature(rx_buffer_sensor);
+      printf("temperature_pt100_1 %.1f\r\n", temperature_pt100_1);
+    }
+    else
+    {
+      temperature_pt100_1 = NAN;
+    }
     HAL_Delay(1000);
 #endif
 
 #if PT100_02
-    send_data_to_rs485(command_pt100_02, "PT100_02");
-    temperature_pt100_2 = pt100_response_to_temperature(rx_buffer_sensor);
-    printf("temperature_pt100_2 %.1f\r\n", temperature_pt100_2);
+    if (send_data_to_rs485(command_pt100_02, "PT100_02"))
+    {
+      temperature_pt100_2 = pt100_response_to_temperature(rx_buffer_sensor);
+      printf("temperature_pt100_2 %.1f\r\n", temperature_pt100_2);
+    }
+    else
+    {
+      temperature_pt100_2 = NAN;
+    }
     HAL_Delay(1000);
 #endif
 
 #if YW001
-    send_data_to_rs485(command_yw001, "YW001");
-    if (yw001_response_to_water_level_cm(rx_buffer_sensor, &water_level))
+    if (send_data_to_rs485(command_yw001, "YW001") &&
+        yw001_response_to_water_level_cm(rx_buffer_sensor, &water_level))
     {
       printf("water_level %.1f cmH2O\r\n", water_level);
     }
     else
     {
+      water_level = NAN;
       printf("Invalid YW001 Modbus response\r\n");
     }
     HAL_Delay(1000);
 #endif
 
 #if RK500_22
-    data_ph_rk500_22 = send_data_to_rs485(command_rk500_22, "RK500_22");
-    data_ph_rk500_22 = modbus_bytes_to_float(rx_buffer_sensor, 3);
-    printf("data_light_sensor %.2f\r\n", data_ph_rk500_22);
+    if (send_data_to_rs485(command_rk500_22, "RK500_22"))
+    {
+      data_ph_rk500_22 = modbus_bytes_to_float(rx_buffer_sensor, 3);
+      printf("data_soil_ph %.2f\r\n", data_ph_rk500_22);
+    }
+    else
+    {
+      data_ph_rk500_22 = NAN;
+    }
     HAL_Delay(1000);
 #endif
 
 #if RK520_01
-    data_soil_temperature_rika520_01 = send_data_to_rs485(command_rika520_01, "RK520_01");
-
-    data_soil_temperature_rika520_01 = (rx_buffer_sensor[3] << 8 | rx_buffer_sensor[4]) * 0.1;
-    printf("data_temperature_rika502_01 %.2f\r\n", data_soil_temperature_rika520_01);
-
-    data_soil_moisture_rika520_01 = ((rx_buffer_sensor[5] << 8 | rx_buffer_sensor[6]) * 0.1);
-    printf("data_moisture_rika502_01 %.2f\r\n", data_soil_moisture_rika520_01);
+    if (send_data_to_rs485(command_rika520_01, "RK520_01"))
+    {
+      data_soil_temperature_rika520_01 =
+          (float)(((uint16_t)(uint8_t)rx_buffer_sensor[3] << 8) |
+                  (uint8_t)rx_buffer_sensor[4]) * 0.1f;
+      data_soil_moisture_rika520_01 =
+          (float)(((uint16_t)(uint8_t)rx_buffer_sensor[5] << 8) |
+                  (uint8_t)rx_buffer_sensor[6]) * 0.1f;
+    }
+    else
+    {
+      data_soil_temperature_rika520_01 = NAN;
+      data_soil_moisture_rika520_01 = NAN;
+    }
     HAL_Delay(1000);
 #endif
 
 #if RK520_02
-    data_soil_temperature_rika502_02 = send_data_to_rs485(command_rk500_22, "RK520_02");
-
-    data_soil_temperature_rika502_02 = (rx_buffer_sensor[3] << 8 | rx_buffer_sensor[4]);
-    printf("data_temperature_rika502_01 %.2f\r\n", data_soil_temperature_rika502_02);
-
-    data_soil_moisture_rika502_02 = (rx_buffer_sensor[5] << 8 | rx_buffer_sensor[6]);
-    printf("data_moisture_rika502_01 %.2f\r\n", data_soil_moisture_rika502_02);
-    HAL_Delay(1000);
+    if (send_data_to_rs485(command_rika520_02, "RK520_02"))
+    {
+      data_soil_temperature_rika520_02 =
+          (float)(((uint16_t)(uint8_t)rx_buffer_sensor[3] << 8) |
+                  (uint8_t)rx_buffer_sensor[4]);
+      data_soil_moisture_rika520_02 =
+          (float)(((uint16_t)(uint8_t)rx_buffer_sensor[5] << 8) |
+                  (uint8_t)rx_buffer_sensor[6]);
+    }
+    else
+    {
+      data_soil_temperature_rika520_02 = NAN;
+      data_soil_moisture_rika520_02 = NAN;
+      EC_rk520_02 = NAN;
+    }
     HAL_Delay(1000);
 #endif
 
 #if NBL_S_TMC_7
-    data_soil_temperature_niubol_7 = send_data_to_rs485(command_niubol_7in1, "NIUBOL 7IN1");
-
-    data_soil_temperature_niubol_7 = (rx_buffer_sensor[3] << 8 | rx_buffer_sensor[4]) * 0.1;
-    printf("data_soil_temperature_niubol_7 %.2f\r\n", data_soil_temperature_niubol_7);
-
-    data_soil_moisture_niubol_7 = (rx_buffer_sensor[5] << 8 | rx_buffer_sensor[6]) * 0.1;
-    printf("data_soil_moisture_niubol_7 %.2f\r\n", data_soil_moisture_niubol_7);
-
-    data_soil_conductivity_niubol_7 = (rx_buffer_sensor[7] << 8 | rx_buffer_sensor[8]);
-    printf("data_soil_conductivity_niubol_7 %.2f\r\n", data_soil_conductivity_niubol_7);
-
-    data_soil_pH_niubol_7 = (rx_buffer_sensor[9] << 8 | rx_buffer_sensor[10]) * 0.01;
-    float temp_pH_niubol_7;
-    temp_pH_niubol_7 = data_soil_pH_niubol_7;
-    if (6.51 < temp_pH_niubol_7 && temp_pH_niubol_7 < 7)
+    if (send_data_to_rs485(command_niubol_7in1, "NIUBOL 7IN1"))
     {
-      data_soil_pH_niubol_7 = data_soil_pH_niubol_7 - 0.8;
+      data_soil_temperature_niubol_7 =
+          (float)(((uint16_t)(uint8_t)rx_buffer_sensor[3] << 8) |
+                  (uint8_t)rx_buffer_sensor[4]) * 0.1f;
+      data_soil_moisture_niubol_7 =
+          (float)(((uint16_t)(uint8_t)rx_buffer_sensor[5] << 8) |
+                  (uint8_t)rx_buffer_sensor[6]) * 0.1f;
+      data_soil_conductivity_niubol_7 =
+          (float)(((uint16_t)(uint8_t)rx_buffer_sensor[7] << 8) |
+                  (uint8_t)rx_buffer_sensor[8]);
+      data_soil_pH_niubol_7 =
+          (float)(((uint16_t)(uint8_t)rx_buffer_sensor[9] << 8) |
+                  (uint8_t)rx_buffer_sensor[10]) * 0.01f;
+      float temp_pH_niubol_7 = data_soil_pH_niubol_7;
+      if (6.51f < temp_pH_niubol_7 && temp_pH_niubol_7 < 7.0f)
+      {
+        data_soil_pH_niubol_7 -= 0.8f;
+      }
+      else if (7.01f < temp_pH_niubol_7 && temp_pH_niubol_7 < 8.0f)
+      {
+        data_soil_pH_niubol_7 -= 1.5f;
+      }
+      else if (8.01f < temp_pH_niubol_7 && temp_pH_niubol_7 < 8.5f)
+      {
+        data_soil_pH_niubol_7 -= 2.0f;
+      }
+      data_soil_nitrogen_niubol_7 =
+          (float)(((uint16_t)(uint8_t)rx_buffer_sensor[11] << 8) |
+                  (uint8_t)rx_buffer_sensor[12]);
+      data_soil_phospho_niubol_7 =
+          (float)(((uint16_t)(uint8_t)rx_buffer_sensor[13] << 8) |
+                  (uint8_t)rx_buffer_sensor[14]);
+      data_soil_kali_niubol_7 =
+          (float)(((uint16_t)(uint8_t)rx_buffer_sensor[15] << 8) |
+                  (uint8_t)rx_buffer_sensor[16]);
     }
-    else if (7.01 < temp_pH_niubol_7 && temp_pH_niubol_7 < 8)
+    else
     {
-      data_soil_pH_niubol_7 = data_soil_pH_niubol_7 - 1.5;
+      data_soil_temperature_niubol_7 = NAN;
+      data_soil_moisture_niubol_7 = NAN;
+      data_soil_conductivity_niubol_7 = NAN;
+      data_soil_pH_niubol_7 = NAN;
+      data_soil_nitrogen_niubol_7 = NAN;
+      data_soil_phospho_niubol_7 = NAN;
+      data_soil_kali_niubol_7 = NAN;
     }
-    else if (8.01 < temp_pH_niubol_7 && temp_pH_niubol_7 < 8.5)
-    {
-      data_soil_pH_niubol_7 = data_soil_pH_niubol_7 - 2;
-    }
-    printf("data_soil_pH_niubol_7 %.2f\r\n", data_soil_pH_niubol_7);
-
-    data_soil_nitrogen_niubol_7 = (rx_buffer_sensor[11] << 8 | rx_buffer_sensor[12]);
-    printf("data_soil_nitrogen_niubol_7 %.2f\r\n", data_soil_nitrogen_niubol_7);
-
-    data_soil_phospho_niubol_7 = (rx_buffer_sensor[13] << 8 | rx_buffer_sensor[14]);
-    printf("data_soil_phospho_niubol_7 %.2f\r\n", data_soil_phospho_niubol_7);
-
-    data_soil_kali_niubol_7 = (rx_buffer_sensor[15] << 8 | rx_buffer_sensor[16]);
-    printf("data_soil_kali_niubol_7 %.2f\r\n", data_soil_kali_niubol_7);
     HAL_Delay(1000);
 #endif
 
 #if NBL_S_NPK
-    data_soil_nitrogen_NBL_S_NPK = send_data_to_rs485(command_nbl_s_npk, "NIUBOL_S_NPK");
-
-    data_soil_nitrogen_NBL_S_NPK = (rx_buffer_sensor[3] << 8 | rx_buffer_sensor[4]);
-    printf("data_soil_temperature_niubol_7 %.2f\r\n", data_soil_nitrogen_NBL_S_NPK);
-
-    data_soil_phospho__NBL_S_NPK = (rx_buffer_sensor[5] << 8 | rx_buffer_sensor[6]);
-    printf("data_soil_moisture_niubol_7 %.2f\r\n", data_soil_phospho__NBL_S_NPK);
-
-    data_soil_kali__NBL_S_NPK = (rx_buffer_sensor[7] << 8 | rx_buffer_sensor[8]);
-    printf("data_soil_conductivity_niubol_7 %.2f\r\n", data_soil_kali__NBL_S_NPK);
-
+    if (send_data_to_rs485(command_nbl_s_npk, "NIUBOL_S_NPK"))
+    {
+      data_soil_nitrogen_NBL_S_NPK =
+          (float)(((uint16_t)(uint8_t)rx_buffer_sensor[3] << 8) |
+                  (uint8_t)rx_buffer_sensor[4]);
+      data_soil_phospho__NBL_S_NPK =
+          (float)(((uint16_t)(uint8_t)rx_buffer_sensor[5] << 8) |
+                  (uint8_t)rx_buffer_sensor[6]);
+      data_soil_kali__NBL_S_NPK =
+          (float)(((uint16_t)(uint8_t)rx_buffer_sensor[7] << 8) |
+                  (uint8_t)rx_buffer_sensor[8]);
+    }
+    else
+    {
+      data_soil_nitrogen_NBL_S_NPK = NAN;
+      data_soil_phospho__NBL_S_NPK = NAN;
+      data_soil_kali__NBL_S_NPK = NAN;
+    }
     HAL_Delay(1000);
 #endif
 #if CO2_UART
-    data_co2 = send_data_co2(command_co2, "CO2");
-    HAL_Delay(100);
-    data_co2 = ((uint8_t)rx_uart2[2] * 256 + (uint8_t)rx_uart2[3]);
+    if (send_data_co2(command_co2, "CO2"))
+    {
+      data_co2 = ((int)(uint8_t)rx_uart2[2] << 8) |
+                 (uint8_t)rx_uart2[3];
+      data_co2_valid = true;
+    }
+    else
+    {
+      data_co2 = -1;
+      data_co2_valid = false;
+    }
     HAL_Delay(100);
 #endif
   }

@@ -35,11 +35,15 @@
 /* Private typedef -----------------------------------------------------------*/
 /* USER CODE BEGIN PTD */
 int _write(int file, char *ptr, int len) {
-
+#if ENABLE_DEBUG
   int i;
   for (i = 0; i < len; i++) {
     ITM_SendChar(*ptr++);
   }
+#else
+  (void)file;
+  (void)ptr;
+#endif
   return len;
 }
 

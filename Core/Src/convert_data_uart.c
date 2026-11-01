@@ -123,12 +123,14 @@ void HAL_UARTEx_RxEventCallback(UART_HandleTypeDef *huart, uint16_t Size) {
       return;
   }
   if (huart->Instance == USART2){
+      rx_uart2_length = Size;
       if (!ota_non_modem_io_paused) {
         restart_receive_to_idle(huart);
       }
       return;
   }
   if (huart->Instance == UART4) {
+    rx_buffer_sensor_length = Size;
     if (!ota_non_modem_io_paused) {
       restart_receive_to_idle(huart);
     }

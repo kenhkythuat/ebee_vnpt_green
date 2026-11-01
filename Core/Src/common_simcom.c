@@ -13,6 +13,7 @@
 #include "stdio.h"
 #include "stdlib.h"
 #include "string.h"
+#include <math.h>
 #include <main.h>
 
 extern UART_HandleTypeDef huart1;
@@ -26,6 +27,7 @@ char rx_data_sim[700];
 char array_at_command[400];
 char array_json[400];
 char rx_uart2[10];
+volatile uint16_t rx_uart2_length;
 
 enum GmsModemState current_status_simcom=Off;
 
@@ -206,6 +208,34 @@ bool acquire_gsm_mqtt_client(void) {
   return false;
 }
 
+static void json_add_float_string_or_fail(cJSON *json, const char *name,
+                                          float value, int precision) {
+  char value_string[24];
+
+  if (!isfinite(value)) {
+    cJSON_AddStringToObject(json, name, "fail");
+    return;
+  }
+
+  snprintf(value_string, sizeof(value_string), "%.*f", precision, value);
+  cJSON_AddStringToObject(json, name, value_string);
+}
+
+#if PT100_01 || PT100_02 || YW001
+static void json_add_float_number_or_fail(cJSON *json, const char *name,
+                                          float value, int precision) {
+  char value_string[24];
+
+  if (!isfinite(value)) {
+    cJSON_AddStringToObject(json, name, "fail");
+    return;
+  }
+
+  snprintf(value_string, sizeof(value_string), "%.*f", precision, value);
+  cJSON_AddRawToObject(json, name, value_string);
+}
+#endif
+
 void create_JSON(void) {
   cJSON *json = cJSON_CreateObject();
   rssi = read_signal_quality();
@@ -218,127 +248,81 @@ void create_JSON(void) {
 
 #if ph_fuvitech
   // data PH Fuvitech
-  char data_measured_ph_fuvitech_str[16];
-  char data_temperature_ph_fuvitech_str[16];
-  snprintf(data_measured_ph_fuvitech_str, sizeof(data_measured_ph_fuvitech_str), "%.2f", data_measured_ph_fuvitech);
-  snprintf(data_temperature_ph_fuvitech_str, sizeof(data_temperature_ph_fuvitech_str), "%.2f", data_temperature_ph_fuvitech);
-  cJSON_AddStringToObject(json, "solPH", data_measured_ph_fuvitech_str);
-  cJSON_AddStringToObject(json, "solT", data_temperature_ph_fuvitech_str);
+  json_add_float_string_or_fail(json, "solPH", data_measured_ph_fuvitech, 2);
+  json_add_float_string_or_fail(json, "solT", data_temperature_ph_fuvitech, 2);
 #endif
 #if ec_fuvitech
-  char data_conductivity_ec_fuvitech_str[16];
-  char data_tds_ec_fuvitech_str[16];
-  char data_resistivity_ec_fuvitech_str[16];
-  char data_salinity_ec_fuvitech_str[16];
-  snprintf(data_conductivity_ec_fuvitech_str, sizeof(data_conductivity_ec_fuvitech_str), "%.2f", data_conductivity_ec_fuvitech);
-  snprintf(data_tds_ec_fuvitech_str, sizeof(data_tds_ec_fuvitech_str), "%.2f", data_tds_ec_fuvitech);
-  snprintf(data_resistivity_ec_fuvitech_str, sizeof(data_resistivity_ec_fuvitech_str), "%.2f", data_resistivity_ec_fuvitech);
-  snprintf(data_salinity_ec_fuvitech_str, sizeof(data_salinity_ec_fuvitech_str), "%.2f", data_salinity_ec_fuvitech);
   //   data EC Fuvitech
-  cJSON_AddStringToObject(json, "solEC", data_conductivity_ec_fuvitech_str);
-  cJSON_AddStringToObject(json, "solTDS", data_tds_ec_fuvitech_str);
-  cJSON_AddStringToObject(json, "solRes", data_resistivity_ec_fuvitech_str);
-  cJSON_AddStringToObject(json, "solSal", data_salinity_ec_fuvitech_str);
+  json_add_float_string_or_fail(json, "solEC", data_conductivity_ec_fuvitech, 2);
+  json_add_float_string_or_fail(json, "solTDS", data_tds_ec_fuvitech, 2);
+  json_add_float_string_or_fail(json, "solRes", data_resistivity_ec_fuvitech, 2);
+  json_add_float_string_or_fail(json, "solSal", data_salinity_ec_fuvitech, 2);
 #endif
 #if do_fuvitech
   //   data DO Fuvitech
-  char data_dissolved_oxygen_str[16];
-  snprintf(data_dissolved_oxygen_str, sizeof(data_dissolved_oxygen_str), "%.2f", data_dissolved_oxygen_fuvitech);
-  cJSON_AddStringToObject(json, "solDO", data_dissolved_oxygen_str);
+  json_add_float_string_or_fail(json, "solDO", data_dissolved_oxygen_fuvitech, 2);
 #endif
 #if SM7820_RS485
-  char data_SM7820_RS485_str[16];
-  snprintf(data_SM7820_RS485_str, sizeof(data_SM7820_RS485_str), "%.2f", data_air_temperature);
-  cJSON_AddStringToObject(json, "airT", data_SM7820_RS485_str);
-  snprintf(data_SM7820_RS485_str, sizeof(data_SM7820_RS485_str), "%.2f", data_air_humidity);
-  cJSON_AddStringToObject(json, "airRH", data_SM7820_RS485_str);
+  json_add_float_string_or_fail(json, "airT", data_air_temperature, 2);
+  json_add_float_string_or_fail(json, "airRH", data_air_humidity, 2);
 #endif
 
 #if LX200K_485
   //   data light
-  char data_LX200K_485_str[16];
-  snprintf(data_LX200K_485_str, sizeof(data_LX200K_485_str), "%.2f", data_light_lx200k);
-  cJSON_AddStringToObject(json, "Light", data_LX200K_485_str);
+  json_add_float_string_or_fail(json, "Light", data_light_lx200k, 2);
 #endif
 
 #if PT100_01
-  char temperature_pt100_1_str[16];
-  snprintf(temperature_pt100_1_str, sizeof(temperature_pt100_1_str), "%.2f", temperature_pt100_1);
-  cJSON_AddRawToObject(json, "temperature_pt100_1", temperature_pt100_1_str);
+  json_add_float_number_or_fail(json, "temperature_pt100_1", temperature_pt100_1, 2);
 #endif
 
 #if PT100_02
-  char temperature_pt100_2_str[16];
-  snprintf(temperature_pt100_2_str, sizeof(temperature_pt100_2_str), "%.2f", temperature_pt100_2);
-  cJSON_AddRawToObject(json, "temperature_pt100_2", temperature_pt100_2_str);
+  json_add_float_number_or_fail(json, "temperature_pt100_2", temperature_pt100_2, 2);
 #endif
 
 #if YW001
-  char water_level_str[16];
-  snprintf(water_level_str, sizeof(water_level_str), "%.1f", water_level);
-  cJSON_AddRawToObject(json, "water_level", water_level_str);
+  json_add_float_number_or_fail(json, "water_level", water_level, 1);
 #endif
 
 #if RK500_22
   //   data light
-  char data_RK500_22_str[16];
-  snprintf(data_RK500_22_str, sizeof(data_RK500_22_str), "%.2f", data_ph_rk500_22);
-  cJSON_AddStringToObject(json, "soilPH", data_RK500_22_str);
+  json_add_float_string_or_fail(json, "soilPH", data_ph_rk500_22, 2);
 #endif
 
 #if RK520_01
   //   data light
-  char data_RK520_01_str[16];
-  snprintf(data_RK520_01_str, sizeof(data_RK520_01_str), "%.2f", data_soil_temperature_rika520_01);
-  cJSON_AddStringToObject(json, "soilT", data_RK520_01_str);
-  snprintf(data_RK520_01_str, sizeof(data_RK520_01_str), "%.2f", data_soil_moisture_rika520_01);
-  cJSON_AddStringToObject(json, "soilMC", data_RK520_01_str);
+  json_add_float_string_or_fail(json, "soilT", data_soil_temperature_rika520_01, 2);
+  json_add_float_string_or_fail(json, "soilMC", data_soil_moisture_rika520_01, 2);
 #endif
 
 #if NBL_S_TMC_7
   //   DATA NIUBOL 7IN1
-  char data_NBL_S_TMC_7_str[16];
-  snprintf(data_NBL_S_TMC_7_str, sizeof(data_NBL_S_TMC_7_str), "%.2f", data_soil_temperature_niubol_7);
-  cJSON_AddStringToObject(json, "soilT", data_NBL_S_TMC_7_str);
-
-  snprintf(data_NBL_S_TMC_7_str, sizeof(data_NBL_S_TMC_7_str), "%.2f", data_soil_moisture_niubol_7);
-  cJSON_AddStringToObject(json, "soilMC", data_NBL_S_TMC_7_str);
-
-  snprintf(data_NBL_S_TMC_7_str, sizeof(data_NBL_S_TMC_7_str), "%.2f", data_soil_conductivity_niubol_7);
-  cJSON_AddStringToObject(json, "soilEC", data_NBL_S_TMC_7_str);
-
-  snprintf(data_NBL_S_TMC_7_str, sizeof(data_NBL_S_TMC_7_str), "%.2f", data_soil_pH_niubol_7);
-  cJSON_AddStringToObject(json, "soilPH", data_NBL_S_TMC_7_str);
-
-  snprintf(data_NBL_S_TMC_7_str, sizeof(data_NBL_S_TMC_7_str), "%.2f", data_soil_nitrogen_niubol_7);
-  cJSON_AddStringToObject(json, "fertN", data_NBL_S_TMC_7_str);
-
-  snprintf(data_NBL_S_TMC_7_str, sizeof(data_NBL_S_TMC_7_str), "%.2f", data_soil_phospho_niubol_7);
-  cJSON_AddStringToObject(json, "fertP", data_NBL_S_TMC_7_str);
-
-  snprintf(data_NBL_S_TMC_7_str, sizeof(data_NBL_S_TMC_7_str), "%.2f", data_soil_kali_niubol_7);
-  cJSON_AddStringToObject(json, "fertK", data_NBL_S_TMC_7_str);
+  json_add_float_string_or_fail(json, "soilT", data_soil_temperature_niubol_7, 2);
+  json_add_float_string_or_fail(json, "soilMC", data_soil_moisture_niubol_7, 2);
+  json_add_float_string_or_fail(json, "soilEC", data_soil_conductivity_niubol_7, 2);
+  json_add_float_string_or_fail(json, "soilPH", data_soil_pH_niubol_7, 2);
+  json_add_float_string_or_fail(json, "fertN", data_soil_nitrogen_niubol_7, 2);
+  json_add_float_string_or_fail(json, "fertP", data_soil_phospho_niubol_7, 2);
+  json_add_float_string_or_fail(json, "fertK", data_soil_kali_niubol_7, 2);
 
 #endif
 
 #if NBL_S_NPK
   //   DATA NIUBOL NPK
-  char data_NBL_S_TMC_7_str[16];
-  snprintf(data_NBL_S_TMC_7_str, sizeof(data_NBL_S_TMC_7_str), "%.2f", data_soil_nitrogen_NBL_S_NPK);
-  cJSON_AddStringToObject(json, "fertN", data_NBL_S_TMC_7_str);
-
-  snprintf(data_NBL_S_TMC_7_str, sizeof(data_NBL_S_TMC_7_str), "%.2f", data_soil_phospho__NBL_S_NPK);
-  cJSON_AddStringToObject(json, "fertP", data_NBL_S_TMC_7_str);
-
-  snprintf(data_NBL_S_TMC_7_str, sizeof(data_NBL_S_TMC_7_str), "%.2f", data_soil_kali__NBL_S_NPK);
-  cJSON_AddStringToObject(json, "fertK", data_NBL_S_TMC_7_str);
+  json_add_float_string_or_fail(json, "fertN", data_soil_nitrogen_NBL_S_NPK, 2);
+  json_add_float_string_or_fail(json, "fertP", data_soil_phospho__NBL_S_NPK, 2);
+  json_add_float_string_or_fail(json, "fertK", data_soil_kali__NBL_S_NPK, 2);
 
 #endif
 
 #if CO2_UART
-  char data_CO2_str[16];
-  snprintf(data_CO2_str, sizeof(data_CO2_str), "%.2d", data_co2);
-  cJSON_AddStringToObject(json, "Carbonic", data_CO2_str);
+  if (data_co2_valid) {
+    char data_CO2_str[16];
+    snprintf(data_CO2_str, sizeof(data_CO2_str), "%.2d", data_co2);
+    cJSON_AddStringToObject(json, "Carbonic", data_CO2_str);
+  } else {
+    cJSON_AddStringToObject(json, "Carbonic", "fail");
+  }
 #endif
 
   char *json_string = cJSON_PrintUnformatted(json);

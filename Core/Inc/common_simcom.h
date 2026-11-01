@@ -16,6 +16,7 @@ void enable_simcom(void);
 extern char rx_buffer_simcom[700];
 extern char rx_data_sim[700];
 extern char rx_uart2[10];
+extern volatile uint16_t rx_uart2_length;
 enum GmsModemState
 {
 	Off,
