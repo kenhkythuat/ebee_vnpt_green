@@ -12,7 +12,9 @@
 #define INC_COMMON_MODBUS_RS485_H_
 
 extern char rx_buffer_sensor[30];
+extern char rx_buffer_sensor_uart[30];
 extern volatile uint16_t rx_buffer_sensor_length;
+void modbus_rs485_rx_event(uint16_t size);
 uint16_t modbus_crc16(uint8_t *buf, uint16_t len);
 extern void read_sensor(void);
 

@@ -110,8 +110,8 @@ static void resume_non_ota_io(void) {
   ota_non_modem_io_paused = false;
   HAL_UARTEx_ReceiveToIdle_IT(&huart2, (uint8_t *)rx_uart2,
                              sizeof(rx_uart2) - 1U);
-  HAL_UARTEx_ReceiveToIdle_IT(&huart4, (uint8_t *)rx_buffer_sensor,
-                             sizeof(rx_buffer_sensor));
+  HAL_UARTEx_ReceiveToIdle_IT(&huart4, (uint8_t *)rx_buffer_sensor_uart,
+                             sizeof(rx_buffer_sensor_uart));
 
   __HAL_TIM_CLEAR_FLAG(&htim6, TIM_FLAG_UPDATE);
   __HAL_TIM_CLEAR_FLAG(&htim7, TIM_FLAG_UPDATE);
@@ -164,7 +164,8 @@ int main(void)
   MX_I2C1_Init();
   /* USER CODE BEGIN 2 */
   HAL_UARTEx_ReceiveToIdle_IT(&huart1, (uint8_t *)rx_buffer_simcom, 700);
-  HAL_UARTEx_ReceiveToIdle_IT(&huart4, (uint8_t *)rx_buffer_sensor, 30);
+  HAL_UARTEx_ReceiveToIdle_IT(&huart4, (uint8_t *)rx_buffer_sensor_uart,
+                             sizeof(rx_buffer_sensor_uart));
   HAL_UARTEx_ReceiveToIdle_IT(&huart2, (uint8_t *)rx_uart2, 9);
   ota_init();
   HAL_TIM_Base_Start_IT(&htim6);

@@ -32,8 +32,8 @@ static HAL_StatusTypeDef start_receive_to_idle(UART_HandleTypeDef *huart) {
                                       sizeof(rx_uart2) - 1U);
   }
   if (huart->Instance == UART4) {
-    return HAL_UARTEx_ReceiveToIdle_IT(huart, (uint8_t *)rx_buffer_sensor,
-                                      sizeof(rx_buffer_sensor));
+    return HAL_UARTEx_ReceiveToIdle_IT(huart, (uint8_t *)rx_buffer_sensor_uart,
+                                      sizeof(rx_buffer_sensor_uart));
   }
   return HAL_ERROR;
 }
@@ -130,7 +130,7 @@ void HAL_UARTEx_RxEventCallback(UART_HandleTypeDef *huart, uint16_t Size) {
       return;
   }
   if (huart->Instance == UART4) {
-    rx_buffer_sensor_length = Size;
+    modbus_rs485_rx_event(Size);
     if (!ota_non_modem_io_paused) {
       restart_receive_to_idle(huart);
     }

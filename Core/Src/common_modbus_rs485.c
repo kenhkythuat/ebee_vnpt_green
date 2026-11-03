@@ -18,7 +18,13 @@
 extern UART_HandleTypeDef huart4;
 extern UART_HandleTypeDef huart2;
 char rx_buffer_sensor[30];
+char rx_buffer_sensor_uart[30];
 volatile uint16_t rx_buffer_sensor_length;
+static volatile bool rx_buffer_sensor_ready;
+
+#define MODBUS_READ_ATTEMPTS 2U
+#define MODBUS_RESPONSE_TIMEOUT_MS 700U
+#define MODBUS_RETRY_DELAY_MS 100U
 
 // data PH Fuvitech
 float data_ph_fuvitech = NAN;
@@ -202,6 +208,52 @@ static bool modbus_response_is_valid(const uint8_t *request)
   return calculated_crc == received_crc;
 }
 
+void modbus_rs485_rx_event(uint16_t size)
+{
+  uint16_t available;
+  uint16_t copy_length;
+  uint16_t expected_length;
+
+  /* UART4 receives into a separate interrupt buffer. Once a complete Modbus
+   * frame has been assembled, keep the processing buffer unchanged until the
+   * foreground code has validated and decoded it. */
+  if (size == 0U || rx_buffer_sensor_ready)
+  {
+    return;
+  }
+
+  available = sizeof(rx_buffer_sensor) - rx_buffer_sensor_length;
+  copy_length = size < available ? size : available;
+  if (copy_length == 0U)
+  {
+    return;
+  }
+
+  memcpy(&rx_buffer_sensor[rx_buffer_sensor_length], rx_buffer_sensor_uart,
+         copy_length);
+  rx_buffer_sensor_length += copy_length;
+
+  if (rx_buffer_sensor_length < 3U)
+  {
+    return;
+  }
+
+  if (((uint8_t)rx_buffer_sensor[1] & 0x80U) != 0U)
+  {
+    expected_length = 5U; /* Modbus exception response. */
+  }
+  else
+  {
+    expected_length = (uint16_t)(uint8_t)rx_buffer_sensor[2] + 5U;
+  }
+
+  if (expected_length <= sizeof(rx_buffer_sensor) &&
+      rx_buffer_sensor_length >= expected_length)
+  {
+    rx_buffer_sensor_ready = true;
+  }
+}
+
 float modbus_bytes_to_float(char *data, int offset)
 {
   uint8_t reordered[4] = {
@@ -265,23 +317,56 @@ static bool yw001_response_to_water_level_cm(const char *response, float *water_
 
 bool send_data_to_rs485(uint8_t *data, char *data_log)
 {
+  uint32_t started_at;
+
   printf("Read measured form %s\r\n", data_log);
-  memset(rx_buffer_sensor, '\0', 30);
-  rx_buffer_sensor_length = 0U;
-  HAL_Delay(200);
-  if (HAL_UART_Transmit(&huart4, data, 8, 1000) != HAL_OK)
+  for (uint8_t attempt = 1U; attempt <= MODBUS_READ_ATTEMPTS; attempt++)
   {
-    printf("[MODBUS] %s transmit failed\r\n", data_log);
-    return false;
+    /* Stop any old/incomplete reception before starting a new transaction. */
+    HAL_UART_AbortReceive(&huart4);
+    __HAL_UART_CLEAR_OREFLAG(&huart4);
+    memset(rx_buffer_sensor, 0, sizeof(rx_buffer_sensor));
+    memset(rx_buffer_sensor_uart, 0, sizeof(rx_buffer_sensor_uart));
+    rx_buffer_sensor_length = 0U;
+    rx_buffer_sensor_ready = false;
+
+    if (HAL_UARTEx_ReceiveToIdle_IT(&huart4,
+                                   (uint8_t *)rx_buffer_sensor_uart,
+                                   sizeof(rx_buffer_sensor_uart)) != HAL_OK)
+    {
+      printf("[MODBUS] %s RX start failed attempt=%u\r\n", data_log,
+             attempt);
+    }
+    else if (HAL_UART_Transmit(&huart4, data, 8, 1000) != HAL_OK)
+    {
+      printf("[MODBUS] %s transmit failed attempt=%u\r\n", data_log,
+             attempt);
+    }
+    else
+    {
+      started_at = HAL_GetTick();
+      while (!rx_buffer_sensor_ready &&
+             (HAL_GetTick() - started_at) < MODBUS_RESPONSE_TIMEOUT_MS)
+      {
+        HAL_Delay(1);
+      }
+
+      if (rx_buffer_sensor_ready && modbus_response_is_valid(data))
+      {
+        return true;
+      }
+
+      printf("[MODBUS] %s invalid/timeout attempt=%u length=%u\r\n",
+             data_log, attempt, rx_buffer_sensor_length);
+    }
+
+    if (attempt < MODBUS_READ_ATTEMPTS)
+    {
+      HAL_Delay(MODBUS_RETRY_DELAY_MS);
+    }
   }
-  HAL_Delay(700);
-  if (!modbus_response_is_valid(data))
-  {
-    printf("[MODBUS] %s no/invalid response length=%u\r\n", data_log,
-           rx_buffer_sensor_length);
-    return false;
-  }
-  return true;
+
+  return false;
 }
 
 bool send_data_to_(uint8_t *data, char *data_log)
@@ -332,8 +417,6 @@ static bool send_data_co2(uint8_t *data, char *data_log)
 void read_sensor(void)
 {
   // read PH Fuvitech
-  for (int i = 0; i < 2; i++)
-  {
 #if ph_fuvitech
     data_measured_ph_fuvitech =
         send_data_to_rs485(measured_command_ph_fuvitech, "PH")
@@ -576,5 +659,4 @@ void read_sensor(void)
     }
     HAL_Delay(100);
 #endif
-  }
 }
